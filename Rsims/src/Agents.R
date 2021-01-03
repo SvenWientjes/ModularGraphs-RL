@@ -133,3 +133,7 @@ OptimalStopper <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, h
   }
   return(parDat[-1,])
 }
+
+ModularStopper <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, hitMat, goalstepchance, parNum=1, startRew=0){
+  ab
+}
