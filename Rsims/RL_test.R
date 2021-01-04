@@ -145,10 +145,10 @@ for(reward in 7:15){
   for(cost in c(0.15, 0.17, 0.20, 0.21, 0.23, 0.25, 0.27, 0.30, 0.31)){
     AG.dat <- data.frame(pp=0, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
     for(pp in 1:nPP){
-      AG.dat <- rbind(AG.dat, RandomStopper(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0))
-      AG.dat <- rbind(AG.dat, LazyWaiter(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0))
-      AG.dat <- rbind(AG.dat, RandomLengther(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0))
-      AG.dat <- rbind(AG.dat, OptimalStopper(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, hitMat=hitMat.nBT, goalstepchance=goalstepchance, parNum=pp, startRew=0))
+      AG.dat <- rbind(AG.dat, RandomStopper(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=reward, sCost=cost, nTrials=nTr, parNum=pp, startRew=0))
+      AG.dat <- rbind(AG.dat, LazyWaiter(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=reward, sCost=cost, nTrials=nTr, parNum=pp, startRew=0))
+      AG.dat <- rbind(AG.dat, RandomLengther(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=reward, sCost=cost, nTrials=nTr, parNum=pp, startRew=0))
+      AG.dat <- rbind(AG.dat, OptimalStopper(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=reward, sCost=cost, nTrials=nTr, hitMat=hitMat.nBT, goalstepchance=goalstepchance, parNum=pp, startRew=0))
     }
     AG.dat <- AG.dat[-1,];
     AG.dat$strat <- droplevels(AG.dat$strat)
