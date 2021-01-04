@@ -2,8 +2,8 @@
 ### MC simulations of the reward experiment with variable input of Rewards, Costs, Trials, and Participants ###
 ###############################################################################################################
 # Get commandArgs bash input
-rewardV <- eval(str2lang(commandArgs(T)[1]))
-costV   <- eval(str2lang(commandArgs(T)[2]))
+rewardV <- eval(parse(text=commandArgs(T)[1], keep.source=F)[[1]])
+costV   <- eval(parse(text=commandArgs(T)[2], keep.s))
 nPP     <- as.numeric(commandArgs(T)[3])
 nTr     <- as.numeric(commandArgs(T)[4])
 
