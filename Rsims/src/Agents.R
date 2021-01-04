@@ -84,7 +84,7 @@ OptimalStopper <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, h
   EV_data <- EVcalc(Edges = Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, hitMat=hitMat, goalstepchance=goalstepchance)
   changePoint <- data.frame(trans=c('1<-4','1<-2','1<-5','6<-4', '7<-6', '7<-9', '6<-7', '4<-1','5<-15','5<-1','4<-6'), cP=0)
   
-  for(tr in levels(EV_data$trans)){
+  for(tr in levels(changePoint$trans)){
     if(T %in% (EV_data[EV_data$trans==tr,'value']<=0)){
       #changePoint <- rbind(changePoint, data.frame(trans=tr, cP=max(which(EV_data[EV_data$trans==tr,'value']<=0))))
       changePoint[changePoint$trans==tr,]$cP <- max(which(EV_data[EV_data$trans==tr,'value']<=0))
