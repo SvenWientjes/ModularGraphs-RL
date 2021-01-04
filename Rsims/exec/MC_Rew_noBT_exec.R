@@ -9,6 +9,7 @@ nTr     <- as.numeric(commandArgs(T)[4])
 
 # Load functions into environment
 source('src/Agents.R')
+source('src/EVcalc.R')
 
 # Full edges matrix (schapiro-style random walk)
 Edges <- list(c(2, 3, 4, 5),
