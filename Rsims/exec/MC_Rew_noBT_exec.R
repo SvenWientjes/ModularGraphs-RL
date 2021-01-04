@@ -27,6 +27,8 @@ Edges <- list(c(2, 3, 4, 5),
               c(11,12,13,15),
               c(5, 12,13,14))
 hitMat.nBT  <- read.csv('data/no-BT_step-9_hit_unique.csv',row.names=1,check.names=F)
+vStart <- 1
+vGoal  <- 8
 
 # Get chance of reaching goal for each n of steps----
 # Get starting expectations
