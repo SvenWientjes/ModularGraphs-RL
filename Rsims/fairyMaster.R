@@ -366,5 +366,19 @@ costVec <- sCost*c(1,2,3,4,5,6,7,8,9)
 t(apply(t(t(propMat) * (gRew-costVec)), 1, cumsum)) - t(t(1-(hitMat.nBT/pathMat.nBT)[2:10]) * costVec)
 t(t(1-(hitMat.nBT/pathMat.nBT)[2:10]) * costVec)
 
+# Define Edges and computations for Extended Graph 1 ----
+vStart <- 1
+vGoal  <- 9
+# Get 
+
+
+
+
+
+
+
+
+
+
 
 
