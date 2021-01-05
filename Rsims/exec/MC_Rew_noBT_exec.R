@@ -87,4 +87,4 @@ for(reward in rewardV){
 }
 AG.dat.ppEval <- AG.dat.ppEval[-1,]
 
-save(AG.dat.ppEval, file='MC_Rew_noBT_data.RData')
+save(AG.dat.ppEval, file='MC_Rew_noBT_Tr200.RData')
