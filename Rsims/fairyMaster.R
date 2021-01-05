@@ -49,6 +49,15 @@ while(length(queue) > 0){
 }
 hits/length(paths)
 
+#Do it with MC
+testProp <- c()
+for(i in 1:100){
+  MC.hitdat <- MC.hitmat(Edges, vStart, vGoal, nSteps=10, nSamp=10000)
+  testProp <- c(testProp, sum(MC.hitdat$goal=='yes')/nrow(MC.hitdat))
+}
+MC.hitdat <- MC.hitmat(Edges, vStart, vGoal, nSteps=15, nSamp=10000)
+sum(MC.hitdat$goal=='yes')/nrow(MC.hitdat)
+
 # Calculate nr of 'hits' in nSteps of complete random walk while not allowing direct back-track ----
 paths   <- list()
 queue   <- list(vStart)
