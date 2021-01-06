@@ -1,0 +1,10 @@
+1. Qualitatively different transition types should place diffent demands on behaviour under optimal conditions
+	* Modularity should bias people away from this behaviour
+		- But provide a cognitively 'cheap' heuristic for still pretty good behaviour
+		- E.g. transitioning into the wrong bottleneck with 7 steps left might still have positive EV but pp still terminate
+2. Even when participants fail pretty badly - say they never terminate - overall EV should be slightly positive
+	* Participants should walk away with some bonus money
+3. The difference in obtained value between optimal behaviour and bad behaviour (e.g. never terminate) should be large
+	* Ideally no overlap in distribution
+4. A decently high rate of getting to the reward for every separate miniblock
+	* Include multiple rewards?
