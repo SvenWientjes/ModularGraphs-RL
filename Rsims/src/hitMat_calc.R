@@ -6,9 +6,9 @@ hitMat.calc <- function(Edges, vGoal, nSteps, inspectVs, totP){
     queue   <- list(V)
     while(length(queue) > 0){
       pCur <- queue[[1]]
-      if(length(pCur) == (nSteps+1)){
-        #nothing
-      }else{
+      if(length(pCur) == nSteps & vGoal %in% Edges[[tail(pCur,1)]]){
+        hitMat[hitMat$vertex==V & hitMat$steps==length(pCur),]$goalprob <- hitMat[hitMat$vertex==V & hitMat$steps==length(pCur),]$goalprob + 4^( nSteps - length(pCur) )
+      }else if(length(pCur) < nSteps){
         for(t in Edges[[tail(pCur,1)]]){
           if(t == vGoal){
             hitMat[hitMat$vertex==V & hitMat$steps==length(pCur),]$goalprob <- hitMat[hitMat$vertex==V & hitMat$steps==length(pCur),]$goalprob + 4^( nSteps - length(pCur) ) #Length pCur works because the addition of t to the path compensates for the fact that we have one more state vs transition
