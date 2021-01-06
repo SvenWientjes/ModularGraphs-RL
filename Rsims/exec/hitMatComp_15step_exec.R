@@ -34,3 +34,5 @@ hitMat.15 <- foreach(v = inspectVertices, .combine=rbind) %dopar% {
   
   hitMat
 }
+
+save(hitMat.15, file='data/step-15_hit-unique.RData')
