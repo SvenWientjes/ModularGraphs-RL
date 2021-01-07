@@ -52,7 +52,7 @@ hits/length(paths)
 #Do it with MC
 testProp <- c()
 for(i in 1:100){
-  MC.hitdat <- MC.hitmat(Edges, vStart, vGoal, nSteps=10, nSamp=10000)
+  MC.hitdat <- MC.hitMat(Edges, vStart, vGoal, nSteps=10, nSamp=10000)
   testProp <- c(testProp, sum(MC.hitdat$goal=='yes')/nrow(MC.hitdat))
 }
 MC.hitdat <- MC.hitmat(Edges, vStart, vGoal, nSteps=15, nSamp=10000)

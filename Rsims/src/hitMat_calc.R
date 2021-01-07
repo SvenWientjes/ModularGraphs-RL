@@ -24,7 +24,7 @@ hitMat.calc <- function(Edges, vGoal, nSteps, inspectVs, totP){
   return(hitMat)
 }
 
-MC.hitmat <- function(Edges, vStart, vGoal, nSteps, nSamp){
+MC.hitMat <- function(Edges, vStart, vGoal, nSteps, nSamp){
   hitMat <- data.frame(goal='init', nSteps=0)
   for(r in 1:nSamp){
     path <- c(vStart)
@@ -38,5 +38,29 @@ MC.hitmat <- function(Edges, vStart, vGoal, nSteps, nSamp){
       }
     }
   }
+  return(hitMat)
+}
+
+hitMat.calc.nBT <- function(Edges, vGoal, nSteps, curV, preV, totP){
+  # nSteps here identifies the total steps AFTER the current event
+  #   The first step from preV -> curV is not counted!
+  hitMat <- data.frame(preVertex = preV, Vertex = curV, steps = 1:nSteps, goalprob = 0)
+  queue <- list(c(preV,curV))
+  while(length(queue)>0){
+    pCur <- queue[[1]]
+    if(length(pCur) == (nSteps+1) & vGoal %in% Edges[[tail(pCur,1)]]){
+      hitMat[hitMat$preVertex==preV & hitMat$Vertex==curV & hitMat$steps==(length(pCur)-1),]$goalprob <- hitMat[hitMat$preVertex==preV & hitMat$Vertex==curV & hitMat$steps==(length(pCur)-1),]$goalprob + 3^( nSteps - length(pCur) + 1)
+    }else if(length(pCur) < (nSteps+1)){
+      for(t in Edges[[tail(pCur,1)]][-which(Edges[[tail(pCur,1)]]==tail(pCur,2)[1])]){
+        if(t == vGoal){
+          hitMat[hitMat$preVertex==preV & hitMat$Vertex==curV & hitMat$steps==(length(pCur)-1),]$goalprob <- hitMat[hitMat$preVertex==preV & hitMat$Vertex==curV & hitMat$steps==(length(pCur)-1),]$goalprob + 3^( nSteps - length(pCur) + 1)
+        }else{
+          queue <- append(queue, list(c(pCur,t)))
+        }
+      }
+    }
+    queue[[1]] <- NULL
+  }
+  hitMat$goalprob <- hitMat$goalprob / totP
   return(hitMat)
 }
