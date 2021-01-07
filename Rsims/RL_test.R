@@ -77,7 +77,8 @@ for(nSteps in 1:10){
 ############################################################################################################################
 ## Plot the EVs over different transitions for different steps ----
 EVdat <- do.call('rbind', apply(unique(hitMat.nBT[,c('preVertex','Vertex')]), 1, function(x){EVcalc.nBT(Edges=Edges, preV=as.integer(x[1]), curV=as.integer(x[2]), vGoal=vGoal, nSteps=9, gRew=7, sCost=0.15, hitMat=hitMat.nBT)}))
-EVplot(EV_data)
+rownames(EVdat) <- NULL
+EVplot.nBT(EV_data)
 
 ## Calculate the change points from positive to negative EV ----
 changePoint <- data.frame(reward=0, cost=0, trans='0', cP=0)
