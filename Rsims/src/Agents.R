@@ -159,7 +159,7 @@ ModularStopper <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, m
   return(parDat[-1,])
 }
 
-RandomStopper  <- function(Edges, vStart, vGoal, gRew, sCost, nTrials, parNum=1, startRew=0){
+RandomStopper  <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, parNum=1, startRew=0){
   # Initialize data.frame for keeping track of experiment
   parDat <- data.frame(pp=parNum, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
   totRew <- startRew

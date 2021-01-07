@@ -111,11 +111,10 @@ for(reward in unique(changePoint$reward)){
   }
 }
 
-## Test the reward and cost values with different agents ----
-# Random Agents
+## Compare Agents No Backtracking ----
 AG.dat <- data.frame(pp=0, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
 nPP <- 250; nTr <- 100
-gRew <- 11; sCost <- 0.27
+gRew <- 7; sCost <- 0.15
 for(pp in 1:nPP){
   AG.dat <- rbind(AG.dat, RandomStopper.nBT(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0))
   AG.dat <- rbind(AG.dat, LazyWaiter.nBT(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0))
@@ -167,7 +166,31 @@ ggplot(AG.dat.ppEval, aes(x=totRew, col=strat)) +
   geom_density() +
   facet_grid(reward~cost)
 
+## Compare Agents With Backtracking ----
+AG.dat <- data.frame(pp=0, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
+nPP <- 250; nTr <- 100
+gRew <- 7; sCost <- 0.15
+for(pp in 1:nPP){
+  AG.dat <- rbind(AG.dat, RandomStopper(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0))
+  AG.dat <- rbind(AG.dat, LazyWaiter(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0))
+  AG.dat <- rbind(AG.dat, RandomLengther(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0))
+  AG.dat <- rbind(AG.dat, ModularStopper(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, modTrans=rbind(c(6,4),c(5,15),c(10,11)), parNum=pp, startRew=0))
+}
+AG.dat <- AG.dat[-1,];
+AG.dat$strat <- droplevels(AG.dat$strat)
 
+AG.dat.ppEval <- data.frame(pp=0, totRew=0, endV.p=0, strat='init')
+for(pp in 1:nPP){
+  for(strat in levels(AG.dat$strat)){
+    totRew <- AG.dat[AG.dat$pp==pp & AG.dat$trial==max(AG.dat$trial) & AG.dat$strat==strat,]$totRew
+    endV.p <- sum(AG.dat[AG.dat$pp==pp & AG.dat$strat==strat,]$endV==vGoal)
+    AG.dat.ppEval <- rbind(AG.dat.ppEval, data.frame(pp=pp, totRew=totRew, endV.p=endV.p, strat=strat))
+  }
+}
+AG.dat.ppEval <- AG.dat.ppEval[-1,]
+
+ggplot(AG.dat.ppEval, aes(x=totRew, col=strat)) +
+  geom_density()
 
 
 
