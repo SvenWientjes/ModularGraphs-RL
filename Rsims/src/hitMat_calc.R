@@ -7,11 +7,11 @@ hitMat.calc <- function(Edges, vGoal, nSteps, inspectVs, totP){
     while(length(queue) > 0){
       pCur <- queue[[1]]
       if(length(pCur) == nSteps & vGoal %in% Edges[[tail(pCur,1)]]){
-        hitMat[hitMat$vertex==V & hitMat$steps==length(pCur),]$goalprob <- hitMat[hitMat$vertex==V & hitMat$steps==length(pCur),]$goalprob + 4^( nSteps - length(pCur) )
+        hitMat[hitMat$vertex==V & hitMat$steps==length(pCur),]$goalprob <- hitMat[hitMat$vertex==V & hitMat$steps==length(pCur),]$goalprob + length(Edges[[tail(pCur,1)]])^( nSteps - length(pCur) )
       }else if(length(pCur) < nSteps){
         for(t in Edges[[tail(pCur,1)]]){
           if(t == vGoal){
-            hitMat[hitMat$vertex==V & hitMat$steps==length(pCur),]$goalprob <- hitMat[hitMat$vertex==V & hitMat$steps==length(pCur),]$goalprob + 4^( nSteps - length(pCur) ) #Length pCur works because the addition of t to the path compensates for the fact that we have one more state vs transition
+            hitMat[hitMat$vertex==V & hitMat$steps==length(pCur),]$goalprob <- hitMat[hitMat$vertex==V & hitMat$steps==length(pCur),]$goalprob + length(Edges[[tail(pCur,1)]])^( nSteps - length(pCur) ) #Length pCur works because the addition of t to the path compensates for the fact that we have one more state vs transition
           }else{
             queue <- append(queue, list(c(pCur,t)))
           }
@@ -49,11 +49,11 @@ hitMat.calc.nBT <- function(Edges, vGoal, nSteps, curV, preV, totP){
   while(length(queue)>0){
     pCur <- queue[[1]]
     if(length(pCur) == (nSteps+1) & vGoal %in% Edges[[tail(pCur,1)]]){
-      hitMat[hitMat$preVertex==preV & hitMat$Vertex==curV & hitMat$steps==(length(pCur)-1),]$goalprob <- hitMat[hitMat$preVertex==preV & hitMat$Vertex==curV & hitMat$steps==(length(pCur)-1),]$goalprob + 3^( nSteps - length(pCur) + 1)
+      hitMat[hitMat$preVertex==preV & hitMat$Vertex==curV & hitMat$steps==(length(pCur)-1),]$goalprob <- hitMat[hitMat$preVertex==preV & hitMat$Vertex==curV & hitMat$steps==(length(pCur)-1),]$goalprob + (length(Edges[[tail(pCur,1)]])-1)^( nSteps - length(pCur) + 1)
     }else if(length(pCur) < (nSteps+1)){
       for(t in Edges[[tail(pCur,1)]][-which(Edges[[tail(pCur,1)]]==tail(pCur,2)[1])]){
         if(t == vGoal){
-          hitMat[hitMat$preVertex==preV & hitMat$Vertex==curV & hitMat$steps==(length(pCur)-1),]$goalprob <- hitMat[hitMat$preVertex==preV & hitMat$Vertex==curV & hitMat$steps==(length(pCur)-1),]$goalprob + 3^( nSteps - length(pCur) + 1)
+          hitMat[hitMat$preVertex==preV & hitMat$Vertex==curV & hitMat$steps==(length(pCur)-1),]$goalprob <- hitMat[hitMat$preVertex==preV & hitMat$Vertex==curV & hitMat$steps==(length(pCur)-1),]$goalprob + (length(Edges[[tail(pCur,1)]])-1)^( nSteps - length(pCur) + 1)
         }else{
           queue <- append(queue, list(c(pCur,t)))
         }
