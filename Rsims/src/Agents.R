@@ -134,6 +134,10 @@ OptimalStopper.Schapiro.nBT <- function(Edges, vStart, vGoal, nSteps, gRew, sCos
   return(parDat[-1,])
 }
 
+OptimalStopper.nBT <- function(Edges, Etc){
+  
+}
+
 ModularStopper <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, modTrans, parNum=1, startRew=0){
   parDat <- data.frame(pp=parNum, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
   totRew <- startRew

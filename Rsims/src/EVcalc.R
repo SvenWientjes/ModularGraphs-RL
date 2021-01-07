@@ -67,3 +67,32 @@ EVcalc <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, hitMat=F, goalstep
   EVdat$trans <- factor(EVdat$trans, levels=c(as.character(EVdat[EVdat$sLeft==9,][order(-EVdat[EVdat$sLeft==9,]$value),]$trans),'1<-|'), ordered=T)
   return(EVdat)
 }
+
+EVcalc.nBT <- function(Edges, curV, preV, vGoal, nSteps, gRew, sCost, hitMat=F){
+  if(!class(hitMat) %in% 'data.frame'){
+    hitMat <- hitMat.calc.nBT(Edges=Edges, vGoal=vGoal, nSteps=nSteps, curV=curV, preV=preV, totP=3^nStep)
+  }
+  if(nSteps != max(hitMat$steps)){
+    stop('Wrong hitmat specification')
+  }
+  EVdat <- data.frame(preVertex = preV, Vertex = curV, steps=1:nSteps, EV=0)
+  
+  for(leftSteps in 1:nSteps){
+    intRew <- (1-sum(hitMat[hitMat$preVertex==preV & hitMat$Vertex==curV & hitMat$steps<=leftSteps,]$goalprob)) * (-sCost * leftSteps)
+    for(i in 1:leftSteps){
+      intRew <- intRew + hitMat[hitMat$preVertex==preV & hitMat$Vertex==curV & hitMat$steps==i,]$goalprob * (gRew - sCost*i) 
+    }
+    EVdat[EVdat$preVertex==preV & EVdat$Vertex==curV & EVdat$steps==leftSteps,]$EV = intRew
+  }
+  return(EVdat)
+}
+
+
+
+
+
+
+
+
+
+

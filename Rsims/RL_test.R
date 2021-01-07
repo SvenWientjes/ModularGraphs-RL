@@ -42,7 +42,8 @@ inspect.Edges <- rbind(c(1,2),
                        c(7,6),
                        c(7,9))
 
-hitMat.nBT  <- read.csv('data/no-BT_step-9_hit_unique.csv',row.names=1,check.names=F)
+hitMat.nBT  <- read.csv('data/hitMat_nBT_step9.csv',row.names=1,check.names=F)
+rownames(hitMat.nBT) <- NULL
 
 ## Precalc goalstepchange ----
 # Get starting expectations
@@ -75,7 +76,7 @@ for(nSteps in 1:10){
 }
 ############################################################################################################################
 ## Plot the EVs over different transitions for different steps ----
-EV_data <- EVcalc(Edges = Edges, vStart=vStart, vGoal=vGoal, nSteps=10, gRew=7, sCost=0.15, hitMat=hitMat.nBT, goalstepchance=goalstepchance)
+EVdat <- do.call('rbind', apply(unique(hitMat.nBT[,c('preVertex','Vertex')]), 1, function(x){EVcalc.nBT(Edges=Edges, preV=as.integer(x[1]), curV=as.integer(x[2]), vGoal=vGoal, nSteps=9, gRew=7, sCost=0.15, hitMat=hitMat.nBT)}))
 EVplot(EV_data)
 
 ## Calculate the change points from positive to negative EV ----

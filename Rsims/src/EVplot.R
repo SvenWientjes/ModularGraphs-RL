@@ -53,3 +53,7 @@ EVplot <- function(EVdat){
     scale_color_brewer(palette='Set3')+
     theme_dark()
 }
+
+EVplot.nBT <- function(EVdat){
+  
+}
