@@ -39,7 +39,7 @@ MC.hitMat <- function(Edges, vStart, vGoal, nSteps, nSamp){
       }
     }
   }
-  hitMat <- data.frame(Vertex=vStart, steps=1:nSteps, goalprob=(MCounter/sum(MCounter))[-length(MCounter)])
+  hitMat <- data.frame(vertex=vStart, steps=1:nSteps, goalprob=(MCounter/sum(MCounter))[-length(MCounter)])
   return(hitMat)
 }
 
