@@ -19,7 +19,7 @@ vStart <- 1    # Nr of starting node
 vGoal  <- 8    # Nr of goal (terminating, rewarding) node
 nSteps <- 10   # Nr of maximum steps in a miniblock (hitMat and EVcalc will use nSteps-1; agent simulations will use nSteps!)
 gRew   <- 7    # Reward upon reaching vGoal
-sCost  <- 0.31 # Points detracted from accumulated reward for each taken step
+sCost  <- 0.15 # Points detracted from accumulated reward for each taken step
 
 # Get parameters for agentic simulations
 nPP <- 250

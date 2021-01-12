@@ -1,7 +1,7 @@
 ## Functions defining agents following policies in the Fairy graph task
 RandomStopper.nBT <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, parNum=1, startRew=0){
   # Initialize data.frame for keeping track of experiment
-  parDat <- data.frame(pp=parNum, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
+  parDat <- data.frame(pp=parNum, trial=1:nTrials, trRew=0, nSteps=0, endV=0, totRew=0, strat='RS')
   totRew <- startRew
   for(tr in 1:nTrials){
     path   <- c(vStart, sample(Edges[[vStart]],1)) #Take the first step
@@ -10,10 +10,10 @@ RandomStopper.nBT <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials
     for(st in 2:(nSteps+1)){
       if(tail(path,1)==vGoal){ #If you reach the goal
         totRew <- totRew+gRew
-        parDat <- rbind(parDat, data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RS'))
+        parDat[parDat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RS')
         break
       }else if(ceiling(runif(1,0,nSteps)) == 1 | st==(nSteps+1)){
-        parDat <- rbind(parDat, data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RS'))
+        parDat[parDat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RS')
         break
       }else{
          path <- c(path, sample(Edges[[tail(path,1)]][-which(Edges[[tail(path,1)]]==tail(path,2)[1])],1))
@@ -22,12 +22,12 @@ RandomStopper.nBT <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials
       }
     }
   }
-  return(parDat[-1,])
+  return(parDat)
 }
 
 LazyWaiter.nBT <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, parNum=1, startRew=0){
   # Initialize data.frame for keeping track of experiment
-  parDat <- data.frame(pp=parNum, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
+  parDat <- data.frame(pp=parNum, trial=1:nTrials, trRew=0, nSteps=0, endV=0, totRew=0, strat='LW')
   totRew <- startRew
   for(tr in 1:nTrials){
     path   <- c(vStart, sample(Edges[[vStart]],1)) #Take the first step
@@ -36,10 +36,10 @@ LazyWaiter.nBT <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, p
     for(st in 2:(nSteps+1)){
       if(tail(path,1)==vGoal){ #If you reach the goal
         totRew <- totRew+gRew
-        parDat <- rbind(parDat, data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='LW'))
+        parDat[parDat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='LW')
         break
       }else if(st==(nSteps+1)){
-        parDat <- rbind(parDat, data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='LW'))
+        parDat[parDat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='LW')
         break
       }else{
         path <- c(path, sample(Edges[[tail(path,1)]][-which(Edges[[tail(path,1)]]==tail(path,2)[1])],1))
@@ -48,11 +48,11 @@ LazyWaiter.nBT <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, p
       }
     }
   }
-  return(parDat[-1,])
+  return(parDat)
 }
 
 RandomLengther.nBT <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, parNum=1, startRew=0){
-  parDat <- data.frame(pp=parNum, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
+  parDat <- data.frame(pp=parNum, trial=1:nTrials, trRew=0, nSteps=0, endV=0, totRew=0, strat='RLen')
   totRew <- startRew
   for(tr in 1:nTrials){
     path   <- c(vStart, sample(Edges[[vStart]],1)) #Take the first step
@@ -62,10 +62,10 @@ RandomLengther.nBT <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrial
     for(st in 2:(nSteps+1)){
       if(tail(path,1)==vGoal){ #If you reach the goal
         totRew <- totRew+gRew
-        parDat <- rbind(parDat, data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RLen'))
+        parDat[parDat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RLen')
         break
       }else if(st==(nSteps+1) | length(path)>=(sampL+1)){
-        parDat <- rbind(parDat, data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RLen'))
+        parDat[parDat$trial==tr,] <-data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RLen')
         break
       }else{
         path <- c(path, sample(Edges[[tail(path,1)]][-which(Edges[[tail(path,1)]]==tail(path,2)[1])],1))
@@ -74,11 +74,11 @@ RandomLengther.nBT <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrial
       }
     }
   }
-  return(parDat[-1,])
+  return(parDat)
 }
 
 OptimalStopper.nBT <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, piMat, parNum=1, startRew=0){
-  parDat <- data.frame(pp=parNum, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
+  parDat <- data.frame(pp=parNum, trial=1:nTrials, trRew=0, nSteps=0, endV=0, totRew=0, strat='OS')
   totRew <- startRew
   for(tr in 1:nTrials){
     path   <- c(vStart, sample(Edges[[vStart]],1)) #First step (forced)
@@ -87,10 +87,10 @@ OptimalStopper.nBT <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrial
     for(st in 2:(nSteps+1)){
       if(tail(path,1)==vGoal){
         totRew <- totRew+gRew
-        parDat <- rbind(parDat, data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='OS'))
+        parDat[parDat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='OS')
         break
       }else if((nSteps - length(path)+1) <= piMat[which(as.logical(apply(piMat[,c(1,2)], 1, all.equal, current=tail(path,2), check.attributes=F))),3]){
-        parDat <- rbind(parDat, data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='OS'))
+        parDat[parDat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='OS')
         break
       }else{
         path <- c(path, sample(Edges[[tail(path,1)]][-which(Edges[[tail(path,1)]]==tail(path,2)[1])],1))
@@ -103,7 +103,7 @@ OptimalStopper.nBT <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrial
 }
 
 ModularStopper <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, modTrans, parNum=1, startRew=0){
-  parDat <- data.frame(pp=parNum, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
+  parDat <- data.frame(pp=parNum, trial=1:nTrials, trRew=0, nSteps=0, endV=0, totRew=0, strat='Mstop')
   totRew <- startRew
   for(tr in 1:nTrials){
     path   <- c(vStart, sample(Edges[[vStart]],1))
@@ -112,10 +112,10 @@ ModularStopper <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, m
     for(st in 2:(nSteps+1)){
       if(tail(path,1)==vGoal){
         totRew <- totRew+gRew
-        parDat <- rbind(parDat, data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='MStop'))
+        parDat[parDat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='MStop')
         break
       }else if(st==(nSteps+1) |( T %in% apply(modTrans, 1, function(x){identical(x, tail(path,2))}) )){
-        parDat <- rbind(parDat, data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='MStop'))
+        parDat[parDat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='MStop')
         break
       }else{
         path <- c(path, sample(Edges[[tail(path,1)]],1))
@@ -124,12 +124,12 @@ ModularStopper <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, m
       }
     }
   }
-  return(parDat[-1,])
+  return(parDat)
 }
 
 RandomStopper  <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, parNum=1, startRew=0){
   # Initialize data.frame for keeping track of experiment
-  parDat <- data.frame(pp=parNum, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
+  parDat <- data.frame(pp=parNum, trial=1:nTrials, trRew=0, nSteps=0, endV=0, totRew=0, strat='RS')
   totRew <- startRew
   for(tr in 1:nTrials){
     path   <- c(vStart, sample(Edges[[vStart]],1)) #Take the first step
@@ -138,10 +138,10 @@ RandomStopper  <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, p
     for(st in 2:(nSteps+1)){
       if(tail(path,1)==vGoal){ #If you reach the goal
         totRew <- totRew+gRew
-        parDat <- rbind(parDat, data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RS'))
+        parDat[parDat$trials==tr,] <- data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RS')
         break
       }else if(ceiling(runif(1,0,nSteps)) == 1 | st==(nSteps+1)){
-        parDat <- rbind(parDat, data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RS'))
+        parDat[parDat$trials==tr,] <- data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RS')
         break
       }else{
         path <- c(path, sample(Edges[[tail(path,1)]],1))
@@ -150,12 +150,12 @@ RandomStopper  <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, p
       }
     }
   }
-  return(parDat[-1,])
+  return(parDat)
 }
 
 LazyWaiter <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, parNum=1, startRew=0){
   # Initialize data.frame for keeping track of experiment
-  parDat <- data.frame(pp=parNum, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
+  parDat <- data.frame(pp=parNum, trial=1:nTrials, trRew=0, nSteps=0, endV=0, totRew=0, strat='LW')
   totRew <- startRew
   for(tr in 1:nTrials){
     path   <- c(vStart, sample(Edges[[vStart]],1)) #Take the first step
@@ -164,10 +164,10 @@ LazyWaiter <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, parNu
     for(st in 2:(nSteps+1)){
       if(tail(path,1)==vGoal){ #If you reach the goal
         totRew <- totRew+gRew
-        parDat <- rbind(parDat, data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='LW'))
+        parDat[parDat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='LW')
         break
       }else if(st==(nSteps+1)){
-        parDat <- rbind(parDat, data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='LW'))
+        parDat[parDat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='LW')
         break
       }else{
         path <- c(path, sample(Edges[[tail(path,1)]],1))
@@ -176,11 +176,11 @@ LazyWaiter <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, parNu
       }
     }
   }
-  return(parDat[-1,])
+  return(parDat)
 }
 
 RandomLengther <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, parNum=1, startRew=0){
-  parDat <- data.frame(pp=parNum, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
+  parDat <- data.frame(pp=parNum, trial=1:nTrials, trRew=0, nSteps=0, endV=0, totRew=0, strat='RLen')
   totRew <- startRew
   for(tr in 1:nTrials){
     path   <- c(vStart, sample(Edges[[vStart]],1)) #Take the first step
@@ -190,10 +190,10 @@ RandomLengther <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, p
     for(st in 2:(nSteps+1)){
       if(tail(path,1)==vGoal){ #If you reach the goal
         totRew <- totRew+gRew
-        parDat <- rbind(parDat, data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RLen'))
+        parDat[parDat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RLen')
         break
       }else if(st==(nSteps+1) | length(path)>=(sampL+1)){
-        parDat <- rbind(parDat, data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RLen'))
+        parDat[parDat$trial==tr,] <-data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RLen')
         break
       }else{
         path <- c(path, sample(Edges[[tail(path,1)]],1))
@@ -202,7 +202,7 @@ RandomLengther <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, p
       }
     }
   }
-  return(parDat[-1,])
+  return(parDat)
 }
 
 OptimalStopper <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, piMat, parNum=1, startRew=0){
