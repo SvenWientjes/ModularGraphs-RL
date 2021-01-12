@@ -24,21 +24,42 @@ hitMat.calc <- function(Edges, vGoal, nSteps, inspectVs, totP){
   return(hitMat)
 }
 
+# Function that return posterior mean for sampled paths over graph
 MC.hitMat <- function(Edges, vStart, vGoal, nSteps, nSamp){
-  hitMat <- data.frame(goal='init', nSteps=0)
+  MCounter <- rep(0, nSteps+1)
   for(r in 1:nSamp){
     path <- c(vStart)
     while(length(path) < (nSteps+1)){
-      path <- c(path, sample(Edges[[tail(path,1)]], 1))
+      path <- c(path, sample(Edges[[tail(path,1)]],1))
       if(tail(path,1)==vGoal){
-        hitMat <- rbind(hitMat, data.frame(goal='yes', nSteps=(length(path)-1)))
+        MCounter[length(path)-1] <- MCounter[length(path)-1]+1
         break
       }else if(length(path)==(nSteps+1)){
-        hitMat <- rbind(hitMat, data.frame(goal='no', nSteps=(length(path)-1)))
+        MCounter[length(MCounter)] <- MCounter[length(MCounter)]+1
       }
     }
   }
+  hitMat <- data.frame(Vertex=vStart, steps=1:nSteps, goalprob=(MCounter/sum(MCounter))[-length(MCounter)])
   return(hitMat)
+}
+
+# Function that can return multiple hitMats sampled from a Dirichlet constructed from sampled paths over the graph
+Bayes.hitMat <- function(Edges, vStart, vGoal, nSteps, nSamp, nPost){
+  hitMat     <- data.frame(Vertex=0, steps=0, goalprob=0)
+  dirCounter <- rep(0, nSteps+1)
+  for(r in 1:nSamp){
+    path <- c(vStart)
+    while(length(path) < (nSteps+1)){
+      path <- c(path, sample(Edges[[tail(path,1)]],1))
+      if(tail(path,1)==vGoal){
+        dirCounter[length(path)-1] <- dirCounter[length(path)-1]+1
+        break
+      }else if(length(path)==(nSteps+1)){
+        dirCounter[length(dirCounter)] <- dirCounter[length(dirCounter)]+1
+      }
+    }
+  }
+  postList <- list()
 }
 
 hitMat.calc.nBT <- function(Edges, vGoal, nSteps, curV, preV, totP){
@@ -62,5 +83,23 @@ hitMat.calc.nBT <- function(Edges, vGoal, nSteps, curV, preV, totP){
     queue[[1]] <- NULL
   }
   hitMat$goalprob <- hitMat$goalprob / totP
+  return(hitMat)
+}
+
+MC.hitMat.nBT <- function(Edges, vGoal, nSteps, curV, preV, nSamp){
+  MCounter <- rep(0, nSteps+1)
+  for(r in 1:nSamp){
+    path <- c(preV, curV)
+    while(length(path) < (nSteps+2)){
+      path <- c(path, sample(Edges[[tail(path,1)]][-which(Edges[[tail(path,1)]]==tail(path,2)[1])],1))
+      if(tail(path,1)==vGoal){
+        MCounter[length(path)-2] <- MCounter[length(path)-2]+1
+        break
+      }else if(length(path)==(nSteps+2)){
+        MCounter[length(MCounter)] <- MCounter[length(MCounter)]+1
+      }
+    }
+  }
+  hitMat <- data.frame(preVertex=preV, Vertex=curV, steps=1:nSteps, goalprob=(MCounter/sum(MCounter))[-length(MCounter)])
   return(hitMat)
 }

@@ -1,5 +1,5 @@
 ############################################################################################################################
-###################### Master Script for Modular Graphs showcasing all functions and workflow ##############################
+############################## Test how well MC hitmat corresponds to analytic hitmat ######################################
 ############################################################################################################################
 # Load Packages
 library(ggplot2)
@@ -19,7 +19,7 @@ vStart <- 1    # Nr of starting node
 vGoal  <- 8    # Nr of goal (terminating, rewarding) node
 nSteps <- 10   # Nr of maximum steps in a miniblock (hitMat and EVcalc will use nSteps-1; agent simulations will use nSteps!)
 gRew   <- 7    # Reward upon reaching vGoal
-sCost  <- 0.31 # Points detracted from accumulated reward for each taken step
+sCost  <- 0.15 # Points detracted from accumulated reward for each taken step
 
 # Get parameters for agentic simulations
 nPP <- 250
@@ -42,8 +42,6 @@ Edges <- list(c(2, 3, 4, 5),
               c(11,12,13,15),
               c(5, 12,13,14))
 
-############# No-BackTracking Schapiro Analysis ----------------------------
-    # Note: should in principle work for ANY graph which has an equal degree for each node!
 inspect.Edges <- rbind(c(1,2), #List all pre- and current vertices to inspect
                        c(1,4),
                        c(1,5),
@@ -55,7 +53,10 @@ inspect.Edges <- rbind(c(1,2), #List all pre- and current vertices to inspect
                        c(6,7),
                        c(7,6),
                        c(7,9))
+
 idmap <- list(a = c(1,2,3, 12,13,14), b = c(4,11), c = c(5,15), d = c(6,10), e = c(7,9))
+
+############# Get the analytic optimal stopping strategy ----------------------------
 
 # Get the hitMat
 hitMat.nBT <- foreach(preV = inspect.Edges[,1], curV = inspect.Edges[,2], .combine=rbind) %do% {
@@ -72,12 +73,9 @@ EVmat.nBT <- foreach(preV = inspect.Edges[,1], curV = inspect.Edges[,2], .combin
 # Get the optimal stopping index (equals or lower) for each possible transition
 piMat.nBT <- policy.generate.nBT(Edges=Edges, EVmat=EVmat.nBT, idmap=idmap)
 
-# Run several agents on this task, all encompassing different heuristics
+# Run optimal stopping agents following optimal analytic policy
 AG.dat <- data.frame(pp=0, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
 for(pp in 1:nPP){
-  AG.dat <- rbind(AG.dat, RandomStopper.nBT( Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0))
-  AG.dat <- rbind(AG.dat, LazyWaiter.nBT(    Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0))
-  AG.dat <- rbind(AG.dat, RandomLengther.nBT(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0))
   AG.dat <- rbind(AG.dat, OptimalStopper.nBT(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0, piMat=piMat.nBT))
 }
 AG.dat <- AG.dat[-1,]
@@ -98,48 +96,40 @@ AG.dat.ppEval <- AG.dat.ppEval[-1,]
 ggplot(AG.dat.ppEval, aes(x=totRew, col=strat)) +
   geom_density()
 
-############# BackTracking Schapiro Analysis ----------------------------
-inspect.Vertices <- c(1,4,5,6,7)
+############# Get the Monte Carlo approximated optimal stopping strategy ------------------------
 
-# Group identical nodes
-idmap <- list(a = c(1,2,3, 12,13,14), b = c(4,11), c = c(5,15), d = c(6,10), e = c(7,9))
-
-# Get the hitMat
-hitMat <- foreach(v=inspect.Vertices, .combine=rbind) %do% {
-  tempMat <- hitMat.calc(Edges=Edges, vGoal=vGoal, nSteps=nSteps-1, inspectVs=v, totP=4^(nSteps-1))
+# Get the approximated HitMat
+hitMat.nBT.MC <- foreach(preV = inspect.Edges[,1], curV = inspect.Edges[,2], .combine=rbind) %do% {
+  tempMat <- MC.hitMat.nBT(Edges=Edges, vGoal=vGoal, nSteps=nSteps-1, curV=curV, preV=preV, nSamp=5000)
   tempMat
 }
 
 # Get the Expected Values for each interaction of previous & current node, conditional upon steps left
-EVmat <- foreach(v = inspect.Vertices, .combine=rbind) %do% {
-  tempMat <- EVcalc(Edges=Edges, vGoal=vGoal, nSteps=nSteps-1, gRew=gRew, sCost=sCost, hitMat=hitMat, Vertex=v) 
+EVmat.nBT.MC <- foreach(preV = inspect.Edges[,1], curV = inspect.Edges[,2], .combine=rbind) %do% {
+  tempMat <- EVcalc.nBT(Edges=Edges, curV=curV, preV=preV, vGoal=vGoal, nSteps=nSteps-1, gRew=gRew, sCost=sCost, hitMat=hitMat.nBT.MC) 
   tempMat
 }
 
-piMat <- policy.generate(Edges=Edges, EVmat=EVmat, idmap=idmap)
+# Get the optimal stopping index (equals or lower) for each possible transition
+piMat.nBT.MC <- policy.generate.nBT(Edges=Edges, EVmat=EVmat.nBT.MC, idmap=idmap)
 
-# Run several agents on this task, all encompassing different heuristics
-AG.dat <- data.frame(pp=0, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
+# Run optimal stopping agents following optimal analytic policy
+AG.dat.MC <- data.frame(pp=0, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
 for(pp in 1:nPP){
-  AG.dat <- rbind(AG.dat, RandomStopper( Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0))
-  AG.dat <- rbind(AG.dat, LazyWaiter(    Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0))
-  AG.dat <- rbind(AG.dat, RandomLengther(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0))
-  AG.dat <- rbind(AG.dat, OptimalStopper(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0, piMat=piMat))
+  AG.dat.MC <- rbind(AG.dat.MC, OptimalStopper.nBT(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0, piMat=piMat.nBT.MC))
 }
-AG.dat <- AG.dat[-1,]
-AG.dat$strat <- droplevels(AG.dat$strat)
+AG.dat.MC <- AG.dat.MC[-1,]
+levels(AG.dat.MC$strat)[levels(AG.dat.MC$strat)=='OS'] <- 'OS.MC'
+AG.dat.MC$strat <- droplevels(AG.dat.MC$strat)
 
-# Summarize agent simulations per participant
-AG.dat.ppEval <- data.frame(pp=0, totRew=0, endV.p=0, strat='init')
+# Append MC strat to analytic strat pp eval
 for(pp in 1:nPP){
-  for(strat in levels(AG.dat$strat)){
-    totRew <- AG.dat[AG.dat$pp==pp & AG.dat$trial==max(AG.dat$trial) & AG.dat$strat==strat,]$totRew
-    endV.p <- sum(AG.dat[AG.dat$pp==pp & AG.dat$strat==strat,]$endV==vGoal)
+  for(strat in levels(AG.dat.MC$strat)){
+    totRew <- AG.dat.MC[AG.dat.MC$pp==pp & AG.dat.MC$trial==max(AG.dat.MC$trial) & AG.dat.MC$strat==strat,]$totRew
+    endV.p <- sum(AG.dat.MC[AG.dat.MC$pp==pp & AG.dat.MC$strat==strat,]$endV==vGoal)
     AG.dat.ppEval <- rbind(AG.dat.ppEval, data.frame(pp=pp, totRew=totRew, endV.p=endV.p, strat=strat))
   }
 }
-AG.dat.ppEval <- AG.dat.ppEval[-1,]
 
-# Plot agent data!
 ggplot(AG.dat.ppEval, aes(x=totRew, col=strat)) +
   geom_density()

@@ -205,7 +205,30 @@ RandomLengther <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, p
   return(parDat[-1,])
 }
 
-
+OptimalStopper <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, piMat, parNum=1, startRew=0){
+  parDat <- data.frame(pp=parNum, trial=1:nTrials, trRew=0, nSteps=0, endV=0, totRew=0, strat='OS')
+  totRew <- startRew
+  for(tr in 1:nTrials){
+    path   <- c(vStart, sample(Edges[[vStart]],1))
+    totRew <- totRew-sCost
+    trRew  <- -sCost
+    for(st in 2:(nSteps+1)){
+      if(tail(path,1)==vGoal){
+        totRew <- totRew+gRew
+        parDat[parDat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='OS')
+        break
+      }else if( (nSteps-length(path)+1) <= piMat[piMat$vertex == tail(path,1), 'stopid']){
+        parDat[parDat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='OS')
+        break
+      }else{
+        path <- c(path,sample(Edges[[tail(path,1)]],1))
+        totRew <- totRew-sCost
+        trRew  <- trRew-sCost
+      }
+    }
+  }
+  return(parDat)
+}
 
 
 

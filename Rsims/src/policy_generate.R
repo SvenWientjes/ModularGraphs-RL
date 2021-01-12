@@ -30,3 +30,22 @@ policy.generate.nBT <- function(Edges, EVmat, idmap){
   }
   return(refmat)
 }
+
+policy.generate <- function(Edges, EVmat, idmap){
+  
+  fullG <- foreach(i = 1:length(Edges), .combine=rbind) %do% {expand.grid(i,Edges[[i]])}
+  
+  refmat <- foreach(v = unique(EVmat$vertex), .combine=rbind) %do% {
+    
+    if(!T %in% (EVmat[EVmat$vertex==v,'EV'] <= 0)){
+      stopid <- 0
+    }else if(!F %in% (EVmat[EVmat$vertex==v,'EV'] <= 0)){
+      stopid <- max(EVmat$steps)
+    }else{
+      stopid <- max(which(EVmat[EVmat$vertex==v,'EV'] <= 0))
+    }
+    
+    data.frame(vertex=idmap[sapply(1:length(idmap), function(x){v%in%idmap[[x]]})][[1]], stopid=stopid)
+  }
+  return(refmat)
+}
