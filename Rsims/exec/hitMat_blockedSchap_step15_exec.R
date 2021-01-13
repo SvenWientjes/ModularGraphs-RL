@@ -4,11 +4,7 @@ library(parallel)
 library(reshape2)
 library(doParallel)
 
-# Load Functions from /src/
-sapply(paste0('src/',list.files('src/')), source)
-
 # Get different Defining Parameters
-vStart <- 1    # Nr of starting node
 vGoal  <- 8    # Nr of goal (terminating, rewarding) node
 nSteps <- 15   # Nr of steps within a miniblock (max)
 
@@ -30,21 +26,20 @@ Edges <- list(c(2, 3, 4, 5),
               c(5, 12,13,14))
 
 inspect.Vertices <- c(1,4,5,6,7,10,11,12,15)
-inspect.Vertices <- c(1)
 
 # Set up parallel cluster
-cl <- makeCluster(5)
+cl <- makeCluster(30)
 registerDoParallel()
 
-hitCountList <- list()
+hitMat <- data.frame(vertex=rep(inspect.Vertices,each=nSteps), steps=rep(1:nSteps,length(inspect.Vertices)), goalprob=0)
 for(v in inspect.Vertices){
   starttime <- Sys.time() #Get time of loop
-  hitMatCount <- foreach(i=1:5, .combine=rbind) %dopar% {
+  hitMatCount <- foreach(i=1:30, .combine=rbind) %dopar% {
       
     MCounter <- rep(0, nSteps+1)
-    while(Sys.time() < (starttime + 1*1*60)){ #Run for set amount of time (hr*min*sec)
+    while(Sys.time() < (starttime + 2*60*60)){ #Run for set amount of time (hr*min*sec)
       
-      path <- c(vStart)
+      path <- c(v)
       while(length(path) < (nSteps+1)){
         path <- c(path, sample(Edges[[tail(path,1)]],1))
         if(tail(path,1)==vGoal){
@@ -57,9 +52,11 @@ for(v in inspect.Vertices){
     }
     MCounter
   }
+  
+  hitMat[hitMat$vertex==v,]$goalprob <- apply(hitMatCount, 2, sum)[1:nSteps]/sum(hitMatCount)
 }
 
-write.csv(hitMatCount, file='data/hitMat_blockedSchap_step15.csv')
+write.csv(hitMat, file='data/hitMat_blockedSchap_step15.csv')
 
 
 
