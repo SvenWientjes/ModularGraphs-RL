@@ -25,7 +25,7 @@ sCost  <- 0.2 # Points detracted from accumulated reward for each taken step
 nPP <- 250
 nTr <- 200
 
-#Full Schapiro-style edge matrix
+#Blocked Schapiro-style edge matrix
 Edges <- list(c(2, 3, 4, 5), 
               c(1, 3, 4, 5),
               c(1, 2, 4, 5),
