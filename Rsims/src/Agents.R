@@ -138,10 +138,10 @@ RandomStopper  <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, p
     for(st in 2:(nSteps+1)){
       if(tail(path,1)==vGoal){ #If you reach the goal
         totRew <- totRew+gRew
-        parDat[parDat$trials==tr,] <- data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RS')
+        parDat[parDat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=(trRew+gRew), nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RS')
         break
       }else if(ceiling(runif(1,0,nSteps)) == 1 | st==(nSteps+1)){
-        parDat[parDat$trials==tr,] <- data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RS')
+        parDat[parDat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=(length(path)-1), endV=tail(path,1), totRew=totRew, strat='RS')
         break
       }else{
         path <- c(path, sample(Edges[[tail(path,1)]],1))
