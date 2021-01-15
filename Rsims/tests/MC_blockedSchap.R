@@ -148,3 +148,31 @@ AG.dat.ppEval <- AG.dat.ppEval[-1,]
 ggplot(AG.dat.ppEval, aes(x=totRew, col=strat)) +
   geom_density() +
   facet_grid(gRew~sCost)
+
+##### Make large plot of server Agent data -----
+AG.dat.ppEval <- read.csv('data/MC_Rew_BlockedSchap.csv', row.names=1)
+
+gvec <- vector('list', length=length(unique(AG.dat.ppEval$gRew)))
+i <- 1
+
+for(r in unique(AG.dat.ppEval$gRew)){
+  graphy <- ggplot(AG.dat.ppEval[AG.dat.ppEval$gRew==r,], aes(x=totRew, col=strat)) +
+    geom_density() +
+    facet_wrap(facets=AG.dat.ppEval[AG.dat.ppEval$gRew==r,]$sCost)
+  gvec[[i]] <- graphy
+  i <- i+1
+}
+remove(i)
+pdf('figs/blockedSchap_Agents.pdf', onefile=T)
+for(i in 1:length(gvec)){
+  print(gvec[[i]])
+}
+dev.off()
+
+
+
+
+
+
+
+
