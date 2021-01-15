@@ -1,1 +1,9 @@
 Loading required package: iterators
+Loading required package: iterators
+Loading required package: parallel
+        src/Agents.R src/EVcalc.R src/EVplot.R src/hitMat_calc.R
+value   ?            ?            ?            ?                
+visible FALSE        FALSE        FALSE        FALSE            
+        src/policy_generate.R
+value   ?                    
+visible FALSE                
