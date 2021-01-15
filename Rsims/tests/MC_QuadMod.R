@@ -42,7 +42,7 @@ Edges <- list(c(2, 3, 4, 5, 24),
               c(19,20,21,22,24),
               c(1, 20,21,22,23))
 
-#Reduced Schapiro-style quad-module edge matrix
+#Quad Schapiro-style edge matrix
 Edges <- list(c(2, 3, 4, 20),
               c(1, 3, 4, 5),
               c(1, 2, 4, 5),
@@ -67,13 +67,13 @@ Edges <- list(c(2, 3, 4, 20),
 # Describe unique nodes for Karuza
 inspect.Vertices <- c(1, 2, 6, 7, 9, 19, 20)
 
-# Describe unique nodes for RSchap
+# Describe unique nodes for QuadSchap
 inspect.Vertices <- c(1, 2, 5, 6, 7, 16, 17)
 
 # Describe identical nodes for Karuza
 idmap <- list(a = c(1,18), b = c(2,3,4,5, 14,15,16,17), c = c(6,13), d = c(7,12), e = c(9,10,11), f = c(19,24), g = c(20,21,22,23))
 
-# Describe identical nodes for RSchap
+# Describe identical nodes for QuadSchap
 idmap <- list(a = c(1,15), b = c(2,3,4, 12,13,14), c = c(5,11), d = c(6,10), e = c(7,9), f = c(16,20), g = c(17,18,19))
 
 # Get the hitMat
