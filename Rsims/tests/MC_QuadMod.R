@@ -3,6 +3,7 @@
 ############################################################################################################################
 library(foreach)
 library(ggplot2)
+library(RColorBrewer)
 # Load Functions from /src/
 sapply(paste0('src/',list.files('src/')), source)
 
@@ -10,8 +11,8 @@ sapply(paste0('src/',list.files('src/')), source)
 vStart <- 2    # Nr of starting node
 vGoal  <- 8    # Nr of goal (terminating, rewarding) node
 nSteps <- 15   # Nr of maximum steps in a miniblock (hitMat and EVcalc will use nSteps-1; agent simulations will use nSteps!)
-gRew   <- 65    # Reward upon reaching vGoal
-sCost  <- 1 # Points detracted from accumulated reward for each taken step
+gRew   <- 65   # Reward upon reaching vGoal
+sCost  <- 1    # Points detracted from accumulated reward for each taken step
 
 # Get parameters for agentic simulations
 nPP <- 250
@@ -91,6 +92,9 @@ EVmat <- foreach(v = inspect.Vertices, .combine=rbind) %do% {
 }
 
 piMat <- policy.generate(Edges=Edges, EVmat=EVmat, idmap=idmap)
+
+# Plot the EV of the different nodes for certain steps left!
+EVplot(EVmat=EVmat, piMat=piMat)
 
 # Run several agents on this task, all encompassing different heuristics
 AG.dat <- data.frame(pp=0, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')

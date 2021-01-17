@@ -1,59 +1,28 @@
-# Function that plots the EVdat with the first crossing to EV-0 highlighted
-EVplot <- function(EVdat){
-  ggplot(EVdat, aes(x=sLeft, y=value, color=trans)) +
-    geom_line(aes(group=trans)) +
-    geom_point()+
-    ylim(min(EVdat$value)-0.5, max(EVdat$value+0.5)) +
-    annotate(geom='segment', x=max(which(EVdat[EVdat$trans=='1<-5',]$value<0))+0.05, 
-             xend=max(which(EVdat[EVdat$trans=='1<-5',]$value<0))+0.05, 
-             y=min(EVdat$value)-0.5, 
-             yend=EVdat[EVdat$trans=='1<-5',]$value[max(which(EVdat[EVdat$trans=='1<-5',]$value<0))], 
-             color=brewer.pal(n=8,name='Set3')[6]) +
-    annotate(geom='text',    x=max(which(EVdat[EVdat$trans=='1<-5',]$value<0))+0.05, 
-             y=min(EVdat$value)-0.5, 
-             label=as.character(max(which(EVdat[EVdat$trans=='1<-5',]$value<0))),
-             color=brewer.pal(n=10,name='Set3')[6]) +
-    annotate(geom='segment', x=max(which(EVdat[EVdat$trans=='1<-2',]$value<0))+0.05, 
-             xend=max(which(EVdat[EVdat$trans=='1<-2',]$value<0))+0.05, 
-             y=min(EVdat$value)-0.5, 
-             yend=EVdat[EVdat$trans=='1<-2',]$value[max(which(EVdat[EVdat$trans=='1<-2',]$value<0))], 
-             color=brewer.pal(n=10,name='Set3')[7]) +
-    annotate(geom='text',    x=max(which(EVdat[EVdat$trans=='1<-2',]$value<0))+0.05, 
-             y=min(EVdat$value)-0.5, 
-             label=as.character(max(which(EVdat[EVdat$trans=='1<-2',]$value<0))),
-             color=brewer.pal(n=10,name='Set3')[7]) +
-    annotate(geom='segment', x=max(which(EVdat[EVdat$trans=='5<-15',]$value<0))+0.05, 
-             xend=max(which(EVdat[EVdat$trans=='5<-15',]$value<0))+0.05, 
-             y=min(EVdat$value)-0.5, 
-             yend=EVdat[EVdat$trans=='5<-15',]$value[max(which(EVdat[EVdat$trans=='5<-15',]$value<0))], 
-             color=brewer.pal(n=10,name='Set3')[8]) +
-    annotate(geom='text',    x=max(which(EVdat[EVdat$trans=='5<-15',]$value<0))+0.05, 
-             y=min(EVdat$value)-0.5, 
-             label=as.character(max(which(EVdat[EVdat$trans=='5<-15',]$value<0))),
-             color=brewer.pal(n=10,name='Set3')[8]) +
-    annotate(geom='segment', x=max(which(EVdat[EVdat$trans=='5<-1',]$value<0))+0.05, 
-             xend=max(which(EVdat[EVdat$trans=='5<-1',]$value<0))+0.05, 
-             y=min(EVdat$value)-0.5, 
-             yend=EVdat[EVdat$trans=='5<-1',]$value[max(which(EVdat[EVdat$trans=='5<-1',]$value<0))], 
-             color=brewer.pal(n=10,name='Set3')[9]) +
-    annotate(geom='text',    x=max(which(EVdat[EVdat$trans=='5<-1',]$value<0))+0.05, 
-             y=min(EVdat$value)-0.5, 
-             label=as.character(max(which(EVdat[EVdat$trans=='5<-1',]$value<0))),
-             color=brewer.pal(n=10,name='Set3')[9]) +
-    annotate(geom='segment', x=max(which(EVdat[EVdat$trans=='1<-4',]$value<0))+0.05, 
-             xend=max(which(EVdat[EVdat$trans=='1<-4',]$value<0))+0.05, 
-             y=min(EVdat$value)-0.5, 
-             yend=EVdat[EVdat$trans=='1<-4',]$value[max(which(EVdat[EVdat$trans=='1<-4',]$value<0))], 
-             color=brewer.pal(n=10,name='Set3')[10]) +
-    annotate(geom='text',    x=max(which(EVdat[EVdat$trans=='1<-4',]$value<0))+0.05, 
-             y=min(EVdat$value)-0.5, 
-             label=as.character(max(which(EVdat[EVdat$trans=='1<-4',]$value<0))),
-             color=brewer.pal(n=10,name='Set3')[10]) +
-    geom_hline(yintercept=0, color='red') +
-    scale_color_brewer(palette='Set3')+
+EVplot <- function(EVmat, piMat){
+  EVmat$vertex <- factor(EVmat$vertex, levels=EVmat[EVmat$steps==max(EVmat$steps),]$vertex[order(-EVmat[EVmat$steps==max(EVmat$steps),]$EV)], ordered=T)
+  pl <- ggplot(EVmat, aes(x = steps, y = EV, col=vertex)) +
+    geom_line(aes(group=vertex)) +
+    scale_color_brewer(palette='Set3') +
     theme_dark()
+  
+  intVs <- piMat[piMat$stopid!=max(piMat$stopid) & piMat$stopid!=min(piMat$stopid),'vertex'][piMat[piMat$stopid!=max(piMat$stopid) & piMat$stopid!=min(piMat$stopid),'vertex'] %in% EVmat$vertex]
+  
+  ints <- lapply(intVs, add_intersect, piMat=piMat, EVmat=EVmat)
+  
+  texts <- lapply(intVs, add_text, piMat=piMat, EVmat=EVmat)
+  
+  pl + ints + texts
+  
+  #pl + add_intersect(EVmat, piMat, 2) + add_text(EVmat, piMat, 2)
 }
 
-EVplot.nBT <- function(EVdat){
-  
+add_intersect <- function(EVmat, piMat, vertex){
+  annotate(geom='segment', x=piMat[piMat$vertex==vertex,'stopid'], y=min(EVmat$EV)-1,
+           xend=piMat[piMat$vertex==vertex,'stopid'], yend=EVmat[EVmat$vertex==vertex & EVmat$steps==piMat[piMat$vertex==vertex,'stopid'],]$EV,
+           color=brewer.pal(n=length(levels(EVmat$vertex)),name='Set3')[which(levels(EVmat$vertex)==vertex)])
+}
+
+add_text <- function(EVmat, piMat, vertex){
+  annotate(geom='text', x=piMat[piMat$vertex==vertex,'stopid'], y=min(EVmat$EV)-2, label=as.character(piMat[piMat$vertex==vertex,'stopid']),
+           color=brewer.pal(n=length(levels(EVmat$vertex)),name='Set3')[which(levels(EVmat$vertex)==vertex)])
 }
