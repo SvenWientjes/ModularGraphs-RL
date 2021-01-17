@@ -2,15 +2,16 @@
 ############################ For testing with graphs that have 4 modules (and 24 nodes?) ###################################
 ############################################################################################################################
 library(foreach)
+library(ggplot2)
 # Load Functions from /src/
 sapply(paste0('src/',list.files('src/')), source)
 
 # Get different Defining Parameters
 vStart <- 2    # Nr of starting node
 vGoal  <- 8    # Nr of goal (terminating, rewarding) node
-nSteps <- 10   # Nr of maximum steps in a miniblock (hitMat and EVcalc will use nSteps-1; agent simulations will use nSteps!)
-gRew   <- 17    # Reward upon reaching vGoal
-sCost  <- 0.14 # Points detracted from accumulated reward for each taken step
+nSteps <- 15   # Nr of maximum steps in a miniblock (hitMat and EVcalc will use nSteps-1; agent simulations will use nSteps!)
+gRew   <- 65    # Reward upon reaching vGoal
+sCost  <- 1 # Points detracted from accumulated reward for each taken step
 
 # Get parameters for agentic simulations
 nPP <- 250
@@ -81,6 +82,7 @@ hitMat <- foreach(v=inspect.Vertices, .combine=rbind) %do% {
   tempMat <- hitMat.calc(Edges=Edges, vGoal=vGoal, nSteps=nSteps-1, inspectVs=v, totP=4^(nSteps-1))
   tempMat
 }
+hitMat <- read.csv('data/hitMat_quadSchap_step15.csv', row.names=1)
 
 # Get the Expected Values for each interaction of previous & current node, conditional upon steps left
 EVmat <- foreach(v = inspect.Vertices, .combine=rbind) %do% {
@@ -118,8 +120,8 @@ ggplot(AG.dat.ppEval, aes(x=totRew, col=strat)) +
 
 ##### Get candidate cost-reward setups that have decent optimal behavioural signatures -----
 candidates <- data.frame(gRew = 0, sCost = 0)
-for(rew in 5:20){
-  for(cost in seq(0.1,1,0.02)){
+for(rew in 70:100){
+  for(cost in seq(1,2,0.02)){
     # Get the Expected Values for each interaction of previous & current node, conditional upon steps left
     EVmat <- foreach(v = inspect.Vertices, .combine=rbind) %do% {
       tempMat <- EVcalc(Edges=Edges, vGoal=vGoal, nSteps=nSteps-1, gRew=rew, sCost=cost, hitMat=hitMat, Vertex=v) 
@@ -128,7 +130,7 @@ for(rew in 5:20){
     
     piMat <- policy.generate(Edges=Edges, EVmat=EVmat, idmap=idmap)
     
-    if(piMat[piMat$vertex==1,]$stopid < 8){
+    if(piMat[piMat$vertex==2,]$stopid == 10){
       candidates <- rbind(candidates, data.frame(gRew=rew, sCost=cost))
     }
   }
