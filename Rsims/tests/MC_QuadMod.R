@@ -15,7 +15,7 @@ gRew   <- 65   # Reward upon reaching vGoal
 sCost  <- 1    # Points detracted from accumulated reward for each taken step
 
 # Get parameters for agentic simulations
-nPP <- 250
+nPP <- 500
 nTr <- 100
 
 #Full Karuza-style quad-module edge matrix
