@@ -103,7 +103,7 @@ OptimalStopper.nBT <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrial
 }
 
 ModularStopper <- function(Edges, vStart, vGoal, nSteps, gRew, sCost, nTrials, modTrans, parNum=1, startRew=0){
-  parDat <- data.frame(pp=parNum, trial=1:nTrials, trRew=0, nSteps=0, endV=0, totRew=0, strat='Mstop')
+  parDat <- data.frame(pp=parNum, trial=1:nTrials, trRew=0, nSteps=0, endV=0, totRew=0, strat='MStop')
   totRew <- startRew
   for(tr in 1:nTrials){
     path   <- c(vStart, sample(Edges[[vStart]],1))

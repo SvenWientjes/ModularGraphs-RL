@@ -15,8 +15,8 @@ gRew   <- 65   # Reward upon reaching vGoal
 sCost  <- 1    # Points detracted from accumulated reward for each taken step
 
 # Get parameters for agentic simulations
-nPP <- 500
-nTr <- 100
+nPP <- 2000
+nTr <- 200
 
 #Full Karuza-style quad-module edge matrix
 Edges <- list(c(2, 3, 4, 5, 24), 
@@ -103,6 +103,7 @@ for(pp in 1:nPP){
   AG.dat <- rbind(AG.dat, LazyWaiter(    Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0))
   AG.dat <- rbind(AG.dat, RandomLengther(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0))
   AG.dat <- rbind(AG.dat, OptimalStopper(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0, piMat=piMat))
+  AG.dat <- rbind(AG.dat, ModularStopper(Edges=Edges, vStart=vStart, vGoal=vGoal, nSteps=nSteps, gRew=gRew, sCost=sCost, nTrials=nTr, parNum=pp, startRew=0, modTrans=rbind(c(1,20),c(6,5),c(10,11))))
 }
 AG.dat <- AG.dat[-1,]
 AG.dat$strat <- droplevels(AG.dat$strat)
@@ -121,6 +122,19 @@ AG.dat.ppEval <- AG.dat.ppEval[-1,]
 # Plot agent data!
 ggplot(AG.dat.ppEval, aes(x=totRew, col=strat)) +
   geom_density()
+
+# Plot nSteps for every agent
+ggplot(AG.dat, aes(fill=strat)) +
+  geom_bar(aes(nSteps), position='dodge') +
+  scale_x_continuous(breaks=1:15, labels=1:15)
+
+# Plot accumulated reward over time for different strategies (focus on OS and MStop)
+ggplot(AG.dat) +
+  geom_line(aes(x=trial, y=totRew, col=pp, group=pp)) +
+  geom_hline(yintercept=0, color='red') +
+  facet_grid(.~strat) +
+  geom_smooth(aes(x=trial, y=totRew, col=pp)) +
+  theme(legend.position='none')
 
 ##### Get candidate cost-reward setups that have decent optimal behavioural signatures -----
 candidates <- data.frame(gRew = 0, sCost = 0)
