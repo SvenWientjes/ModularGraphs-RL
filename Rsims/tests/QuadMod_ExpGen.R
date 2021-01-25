@@ -7,14 +7,12 @@ library(foreach)
 sapply(paste0('src/',list.files('src/')), source)
 
 # Get different Defining Parameters
-vStart <- 2    # Nr of starting node
-vGoal  <- 8    # Nr of goal (terminating, rewarding) node
 nSteps <- 15   # Nr of maximum steps in a miniblock (hitMat and EVcalc will use nSteps-1; agent simulations will use nSteps!)
 gRew   <- 65   # Reward upon reaching vGoal
 sCost  <- 1    # Points detracted from accumulated reward for each taken step
 
 # Get parameters for agentic simulations
-nPP <- 25
+nPP <- 500
 nTr <- 100
 
 #Quad Schapiro-style edge matrix
@@ -140,10 +138,34 @@ for(p in unique(full.exp$pp)){
       AG.dat <- rbind(AG.dat, data.frame(pp=p, trial=tr, trRew=trRew.os, nSteps=(min(which(path==g), which(!sapply(path, function(i){pi.t[pi.t$vertex==i,'stopid']}) < c(15:0)[1:length(path)]))-1), endV=path[min(which(path==g), which(!sapply(path, function(i){pi.t[pi.t$vertex==i,'stopid']}) < c(15:0)[1:length(path)]))], totRew=totRew.os, strat='OS'))
     }
     
-    
     # Find MS strategy
+    gc <- names(idmap.g[sapply(idmap.g, function(m){g %in% m})])
+    sc <- names(idmap.g[sapply(idmap.g, function(m){path[1] %in% m})])
+    wc <- c.map[sc][[1]][c.map[sc][[1]] != gc]
+    lc <- c('a','b','c','d')[!c('a','b','c','d') %in% c(wc,gc,sc)]
     
+    leavenode <- bt.map[[wc]][which(c.map[wc][[1]] == sc)]
+    leavenode <- c(leavenode, bt.map[lc][[1]][c.map[lc][[1]] == gc])
     
+    if(g %in% path){
+      if(path[min(which(path==g), which(path %in% leavenode))]==g){
+        trRew.ms  <- gRew - sCost*(which(path==g)-1)
+        totRew.ms <- totRew.ms + trRew.ms
+        AG.dat <- rbind(AG.dat, data.frame(pp=p, trial=tr, trRew=trRew.ms, nSteps=which(path==g)-1, endV=g, totRew=totRew.ms, strat='MS'))
+      }else if(T %in% (leavenode %in% path)){
+        trRew.ms  <- -sCost*(min(which(path %in% leavenode))-1)
+        totRew.ms <- totRew.ms + trRew.ms
+        AG.dat <- rbind(AG.dat, data.frame(pp=p, trial=tr, trRew=trRew.ms, nSteps=(min(which(path %in% leavenode))-1), endV=path[min(which(path %in% leavenode))], totRew=totRew.ms, strat='MS'))
+      }
+    }else if(T %in% (leavenode %in% path)){
+      trRew.ms  <- -sCost*(min(which(path %in% leavenode))-1)
+      totRew.ms <- totRew.ms + trRew.ms
+      AG.dat <- rbind(AG.dat, data.frame(pp=p, trial=tr, trRew=trRew.ms, nSteps=(min(which(path %in% leavenode))-1), endV=path[min(which(path %in% leavenode))], totRew=totRew.ms, strat='MS'))
+    }else{
+      trRew.ms <- -nSteps*sCost
+      totRew.ms <- totRew.ms + trRew.ms
+      AG.dat <- rbind(AG.dat, data.frame(pp=p, trial=tr, trRew=trRew.ms, nSteps=nSteps, endV=tail(path,1), totRew=totRew.ms, strat='MS'))
+    }
   }
 }
 
