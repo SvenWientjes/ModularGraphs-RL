@@ -2,6 +2,8 @@
 ################## Generating different 100-block experiments with similar reward characteristics ##########################
 ############################################################################################################################
 library(foreach)
+library(ggplot2)
+library(reshape2)
 
 # Load Functions from /src/
 sapply(paste0('src/',list.files('src/')), source)
@@ -61,144 +63,48 @@ EVmat <- foreach(v = inspect.Vertices, .combine=rbind) %do% {
 
 piMat <- policy.generate(Edges=Edges, EVmat=EVmat, idmap=idmap)
 
-# Actually generate experiments
-full.exp <- data.frame(pp = 0, tr = 0, step = 0, v = 0, goal=0)
+## Generate experiment according to criteria
+# Goal visits conditional upon optimal stopping strategy
+# Cannot make more points by modular stopping vs optimal stopping
+sim.list <- foreach(i=1:nPP, .combine=list) %do% {
+  goalTol <- T
+  stratTol <- T
+  while(goalTol | stratTol){
+    # Generate Data
+    full.exp <- Exp.gen(Edges=Edges, e.nodes=c(2,3,4,7,8,9,12,13,14,17,18,19), nSteps=nSteps, nTr=nTr, c.map=c.map, idmap.g=idmap.g, parNum=i)
+    OS.strat <- OS.apply.QS(experiment=full.exp, piMat=piMat, idmap.g=idmap.g, c.map=c.map, bt.map=bt.map, gRew=gRew, sCost=sCost, parNum=i)
+    MS.strat <- MS.apply.QS(experiment=full.exp, bt.map=bt.map, c.map=c.map, idmap.g=idmap.g, gRew=gRew, sCost=sCost, parNum=i)
+    LW.strat <- LW.apply.QS(experiment=full.exp, gRew=gRew, sCost=sCost, parNum=i)
+    
+    # Perform adequacy tests
+    goalTol = !abs(sum(OS.strat$trRew > 0) - nHit) <= floor(0.2*nHit)
+    stratTol = !tail(MS.strat$totRew,1) <= tail(OS.strat$totRew,1)
+  }
+  list(full.exp=full.exp, AG.dat=rbind(OS.strat,MS.strat,LW.strat))
+}
+full.exp <- foreach(i = 1:nPP, .combine=rbind) %do% {sim.list[[i]]$full.exp}
+AG.dat   <- foreach(i = 1:nPP, .combine=rbind) %do% {sim.list[[i]]$AG.dat}
+remove(sim.list)
+
+# Evaluate edges in line plots to check equal distribution
+Edge.eval <- matrix(rep(rep(0, nrow(Edge.list)),nPP), ncol=nPP)
 for(p in 1:nPP){
-  cur.exp   <- data.frame(pp=p, tr=0, step=0, v=0, goal=0)
-  edge.eval <- rep(0, nrow(Edge.list))
-  goalcount <- 0
-  while( (abs(goalcount-nHit) > floor(0.2*nHit)) | !(floor(sum(edge.eval)/length(edge.eval))-min(edge.eval) < floor(0.5*sum(edge.eval)/length(edge.eval))) ){
-    cur.exp   <- data.frame(pp=p, tr=0, step=0, v=0, goal=0)
-    edge.eval <- rep(0, nrow(Edge.list))
-    goalcount <- 0
-    for(t in 1:nTr){
-      # Select a goal node
-      goal <- sample(c(2,3,4,7,8,9,12,13,14,17,18,19),1)
-      
-      # Select an eligible starting node
-      path <- sample(sample(idmap.g[c.map[sapply(idmap.g, function(m){goal %in% m})][[1]]], 1)[[1]],1)
-      
-      # Track nSteps
-      stept <- 0
-      
-      while(stept < nSteps & (tail(path,1) != goal)){
-        path <- c(path, sample(Edges[[tail(path,1)]], 1))
-        stept <- stept + 1
-        edge.eval[which(apply(Edge.list, 1, function(i){identical(as.numeric(i), tail(path,2))}))] <- edge.eval[which(apply(Edge.list, 1, function(i){identical(as.numeric(i), tail(path,2))}))]+1
-      }
-      cur.exp <- rbind(cur.exp, data.frame(pp=p, tr=t, step=0:stept, v=path, goal=goal))
-      
-      # Calculate optimal stopping policy
-      pi.t <- data.frame(vertex = 1:20, stopid = 14)
-      
-      # Get same cluster deep nodes
-      pi.t[pi.t$vertex%in%idmap.g[sapply(idmap.g, function(m){goal %in% m})][[1]],'stopid'] <- piMat[piMat$vertex==7,'stopid']
-      # Get same cluster exit bt nodes
-      pi.t[pi.t$vertex %in% bt.map[sapply(idmap.g, function(m){goal %in% m})][[1]],'stopid'] <- piMat[piMat$vertex==6,'stopid']
-      # Get side cluster deep nodes
-      pi.t[pi.t$vertex %in% c(sapply(idmap.g[c.map[sapply(idmap.g, function(m){goal %in% m})][[1]]],c)), 'stopid'] <- piMat[piMat$vertex==2, 'stopid']
-      # Get side cluster to goal bt nodes
-      pi.t[pi.t$vertex %in% bt.map[sapply(c.map, function(i){names(which(sapply(idmap.g, function(m){goal %in% m}))) %in% i})][[1]][which(c.map[sapply(c.map, function(i){names(which(sapply(idmap.g, function(m){goal %in% m}))) %in% i})][[1]] == names(which(sapply(idmap.g, function(m){goal %in% m}))))],'stopid'] <- piMat[piMat$vertex==5,'stopid']
-      pi.t[pi.t$vertex %in% bt.map[sapply(c.map, function(i){names(which(sapply(idmap.g, function(m){goal %in% m}))) %in% i})][[2]][which(c.map[sapply(c.map, function(i){names(which(sapply(idmap.g, function(m){goal %in% m}))) %in% i})][[2]] == names(which(sapply(idmap.g, function(m){goal %in% m}))))],'stopid'] <- piMat[piMat$vertex==5,'stopid']
-      
-      # Calculate optimal stopping goal reach count
-      if(path[min(which(path==goal), which(!sapply(path, function(i){pi.t[pi.t$vertex==i,'stopid']}) < c(15:0)[1:length(path)]))]==goal){
-        goalcount = goalcount + 1
-      }
-    }
-    
-  }
-  full.exp <- rbind(full.exp, cur.exp)
-}
-full.exp <- full.exp[!full.exp$tr==0,]
-
-# Evaluate experiment under OS and MS
-AG.dat <- data.frame(pp=0, trial=0, trRew=0, nSteps=0, endV=0, totRew=0, strat='init')
-for(p in unique(full.exp$pp)){
-  totRew.lw <- 0
-  trRew.lw  <- 0
-  totRew.os <- 0
-  trRew.os  <- 0
-  totRew.ms <- 0
-  trRew.ms  <- 0
-  for(tr in unique(full.exp$tr)){
-    g <- full.exp[full.exp$pp==p & full.exp$tr==tr &full.exp$step==0, 'goal']
-    path <- full.exp[full.exp$pp==p & full.exp$tr==tr,'v']
-    
-    pi.t <- data.frame(vertex = 1:20, stopid = 14)
-    
-    # Get same cluster deep nodes
-    pi.t[pi.t$vertex%in%idmap.g[sapply(idmap.g, function(m){g %in% m})][[1]],'stopid'] <- piMat[piMat$vertex==7,'stopid']
-    # Get same cluster exit bt nodes
-    pi.t[pi.t$vertex %in% bt.map[sapply(idmap.g, function(m){g %in% m})][[1]],'stopid'] <- piMat[piMat$vertex==6,'stopid']
-    # Get side cluster deep nodes
-    pi.t[pi.t$vertex %in% c(sapply(idmap.g[c.map[sapply(idmap.g, function(m){g %in% m})][[1]]],c)), 'stopid'] <- piMat[piMat$vertex==2, 'stopid']
-    # Get side cluster to goal bt nodes
-    pi.t[pi.t$vertex %in% bt.map[sapply(c.map, function(i){names(which(sapply(idmap.g, function(m){g %in% m}))) %in% i})][[1]][which(c.map[sapply(c.map, function(i){names(which(sapply(idmap.g, function(m){g %in% m}))) %in% i})][[1]] == names(which(sapply(idmap.g, function(m){g %in% m}))))],'stopid'] <- piMat[piMat$vertex==5,'stopid']
-    pi.t[pi.t$vertex %in% bt.map[sapply(c.map, function(i){names(which(sapply(idmap.g, function(m){g %in% m}))) %in% i})][[2]][which(c.map[sapply(c.map, function(i){names(which(sapply(idmap.g, function(m){g %in% m}))) %in% i})][[2]] == names(which(sapply(idmap.g, function(m){g %in% m}))))],'stopid'] <- piMat[piMat$vertex==5,'stopid']
-    
-    # Find Lazy Waiting strategy
-    if(g %in% path){
-      trRew.lw  <- gRew - sCost*(which(path==g)-1)
-      totRew.lw <- totRew.lw + trRew.lw
-      AG.dat <- rbind(AG.dat, data.frame(pp=p, trial=tr, trRew=trRew.lw, nSteps=which(path==g)-1, endV=g, totRew=totRew.lw, strat='LW'))
-    }else{
-      trRew.lw <- -nSteps*sCost
-      totRew.lw <- totRew.lw + trRew.lw
-      AG.dat <- rbind(AG.dat, data.frame(pp=p, trial=tr, trRew=trRew.lw, nSteps=nSteps, endV=tail(path,1), totRew=totRew.lw, strat='LW'))
-    }
-    
-    # Find OS stategy
-    if(path[min(which(path==g), which(!sapply(path, function(i){pi.t[pi.t$vertex==i,'stopid']}) < c(15:0)[1:length(path)]))]==g){
-      trRew.os  <- gRew - sCost*(which(path==g)-1)
-      totRew.os <- totRew.os + trRew.os
-      AG.dat <- rbind(AG.dat, data.frame(pp=p, trial=tr, trRew=trRew.os, nSteps=which(path==g)-1, endV=g, totRew=totRew.os, strat='OS'))
-    }else{
-      trRew.os  <- -sCost*(min(which(path==g), which(!sapply(path, function(i){pi.t[pi.t$vertex==i,'stopid']}) < c(15:0)[1:length(path)]))-1)
-      totRew.os <- totRew.os + trRew.os
-      AG.dat <- rbind(AG.dat, data.frame(pp=p, trial=tr, trRew=trRew.os, nSteps=(min(which(path==g), which(!sapply(path, function(i){pi.t[pi.t$vertex==i,'stopid']}) < c(15:0)[1:length(path)]))-1), endV=path[min(which(path==g), which(!sapply(path, function(i){pi.t[pi.t$vertex==i,'stopid']}) < c(15:0)[1:length(path)]))], totRew=totRew.os, strat='OS'))
-    }
-    
-    # Find MS strategy
-    gc <- names(idmap.g[sapply(idmap.g, function(m){g %in% m})])
-    sc <- names(idmap.g[sapply(idmap.g, function(m){path[1] %in% m})])
-    wc <- c.map[sc][[1]][c.map[sc][[1]] != gc]
-    lc <- c('a','b','c','d')[!c('a','b','c','d') %in% c(wc,gc,sc)]
-    
-    leavenode <- bt.map[[wc]][which(c.map[wc][[1]] == sc)]
-    leavenode <- c(leavenode, bt.map[lc][[1]][c.map[lc][[1]] == gc])
-    
-    if(g %in% path){
-      if(path[min(which(path==g), which(path %in% leavenode))]==g){
-        trRew.ms  <- gRew - sCost*(which(path==g)-1)
-        totRew.ms <- totRew.ms + trRew.ms
-        AG.dat <- rbind(AG.dat, data.frame(pp=p, trial=tr, trRew=trRew.ms, nSteps=which(path==g)-1, endV=g, totRew=totRew.ms, strat='MS'))
-      }else if(T %in% (leavenode %in% path)){
-        trRew.ms  <- -sCost*(min(which(path %in% leavenode))-1)
-        totRew.ms <- totRew.ms + trRew.ms
-        AG.dat <- rbind(AG.dat, data.frame(pp=p, trial=tr, trRew=trRew.ms, nSteps=(min(which(path %in% leavenode))-1), endV=path[min(which(path %in% leavenode))], totRew=totRew.ms, strat='MS'))
-      }
-    }else if(T %in% (leavenode %in% path)){
-      trRew.ms  <- -sCost*(min(which(path %in% leavenode))-1)
-      totRew.ms <- totRew.ms + trRew.ms
-      AG.dat <- rbind(AG.dat, data.frame(pp=p, trial=tr, trRew=trRew.ms, nSteps=(min(which(path %in% leavenode))-1), endV=path[min(which(path %in% leavenode))], totRew=totRew.ms, strat='MS'))
-    }else{
-      trRew.ms <- -nSteps*sCost
-      totRew.ms <- totRew.ms + trRew.ms
-      AG.dat <- rbind(AG.dat, data.frame(pp=p, trial=tr, trRew=trRew.ms, nSteps=nSteps, endV=tail(path,1), totRew=totRew.ms, strat='MS'))
+  for(tr in 1:nTr){
+    for(n in 2:length(full.exp[full.exp$tr==tr & full.exp$pp==p,]$v)){
+      Edge.eval[which(Edge.list[,1]==full.exp[full.exp$tr==tr & full.exp$pp==p,]$v[n-1] & Edge.list[,2]==full.exp[full.exp$tr==tr & full.exp$pp==p,]$v[n]),p] <- Edge.eval[which(Edge.list[,1]==full.exp[full.exp$tr==tr & full.exp$pp==p,]$v[n-1] & Edge.list[,2]==full.exp[full.exp$tr==tr & full.exp$pp==p,]$v[n]),p] + 1
     }
   }
 }
-
-AG.dat <- AG.dat[-1,]
-AG.dat$strat <- droplevels(AG.dat$strat)
+ggplot(melt(Edge.eval), aes(x=Var1, y=value)) +
+  geom_line() + 
+  facet_grid(melt(Edge.eval)$Var2)
 
 # Summarize agent simulations per participant
 AG.dat.ppEval <- data.frame(pp=0, totRew=0, endV.p=0, strat='init')
 for(pp in 1:nPP){
   for(strat in levels(AG.dat$strat)){
     totRew <- AG.dat[AG.dat$pp==pp & AG.dat$trial==max(AG.dat$trial) & AG.dat$strat==strat,]$totRew
-    endV.p <- sum(AG.dat[AG.dat$pp==pp & AG.dat$strat==strat,]$endV==vGoal)
+    endV.p <- sum(AG.dat[AG.dat$pp==pp & AG.dat$strat==strat,]$trRew>=0)
     AG.dat.ppEval <- rbind(AG.dat.ppEval, data.frame(pp=pp, totRew=totRew, endV.p=endV.p, strat=strat))
   }
 }
@@ -210,7 +116,7 @@ ggplot(AG.dat.ppEval, aes(x=totRew, col=strat)) +
 # Plot nSteps for every agent
 ggplot(AG.dat, aes(fill=strat)) +
   geom_bar(aes(nSteps), position='dodge') +
-  scale_x_continuous(breaks=1:15, labels=1:15)
-
+  scale_x_continuous(breaks=1:15, labels=1:15) #+
+  #facet_grid(AG.dat$pp)
 
 
