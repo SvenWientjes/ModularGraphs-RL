@@ -64,11 +64,13 @@ piMat <- policy.generate(Edges=Edges, EVmat=EVmat, idmap=idmap)
 # Actually generate experiments
 full.exp <- data.frame(pp = 0, tr = 0, step = 0, v = 0, goal=0)
 for(p in 1:nPP){
-  cur.exp <- data.frame(pp=p, tr=0, step=0, v=0, goal=0)
+  cur.exp   <- data.frame(pp=p, tr=0, step=0, v=0, goal=0)
   edge.eval <- rep(0, nrow(Edge.list))
-  while( (abs(sum(cur.exp$v == cur.exp$goal)-nHit) > floor(0.2*nHit)) | !(floor(sum(edge.eval)/length(edge.eval))-min(edge.eval) < floor(0.5*sum(edge.eval)/length(edge.eval))) ){
-    cur.exp <- data.frame(pp=p, tr=0, step=0, v=0, goal=0)
+  goalcount <- 0
+  while( (abs(goalcount-nHit) > floor(0.2*nHit)) | !(floor(sum(edge.eval)/length(edge.eval))-min(edge.eval) < floor(0.5*sum(edge.eval)/length(edge.eval))) ){
+    cur.exp   <- data.frame(pp=p, tr=0, step=0, v=0, goal=0)
     edge.eval <- rep(0, nrow(Edge.list))
+    goalcount <- 0
     for(t in 1:nTr){
       # Select a goal node
       goal <- sample(c(2,3,4,7,8,9,12,13,14,17,18,19),1)
@@ -85,7 +87,26 @@ for(p in 1:nPP){
         edge.eval[which(apply(Edge.list, 1, function(i){identical(as.numeric(i), tail(path,2))}))] <- edge.eval[which(apply(Edge.list, 1, function(i){identical(as.numeric(i), tail(path,2))}))]+1
       }
       cur.exp <- rbind(cur.exp, data.frame(pp=p, tr=t, step=0:stept, v=path, goal=goal))
+      
+      # Calculate optimal stopping policy
+      pi.t <- data.frame(vertex = 1:20, stopid = 14)
+      
+      # Get same cluster deep nodes
+      pi.t[pi.t$vertex%in%idmap.g[sapply(idmap.g, function(m){goal %in% m})][[1]],'stopid'] <- piMat[piMat$vertex==7,'stopid']
+      # Get same cluster exit bt nodes
+      pi.t[pi.t$vertex %in% bt.map[sapply(idmap.g, function(m){goal %in% m})][[1]],'stopid'] <- piMat[piMat$vertex==6,'stopid']
+      # Get side cluster deep nodes
+      pi.t[pi.t$vertex %in% c(sapply(idmap.g[c.map[sapply(idmap.g, function(m){goal %in% m})][[1]]],c)), 'stopid'] <- piMat[piMat$vertex==2, 'stopid']
+      # Get side cluster to goal bt nodes
+      pi.t[pi.t$vertex %in% bt.map[sapply(c.map, function(i){names(which(sapply(idmap.g, function(m){goal %in% m}))) %in% i})][[1]][which(c.map[sapply(c.map, function(i){names(which(sapply(idmap.g, function(m){goal %in% m}))) %in% i})][[1]] == names(which(sapply(idmap.g, function(m){goal %in% m}))))],'stopid'] <- piMat[piMat$vertex==5,'stopid']
+      pi.t[pi.t$vertex %in% bt.map[sapply(c.map, function(i){names(which(sapply(idmap.g, function(m){goal %in% m}))) %in% i})][[2]][which(c.map[sapply(c.map, function(i){names(which(sapply(idmap.g, function(m){goal %in% m}))) %in% i})][[2]] == names(which(sapply(idmap.g, function(m){goal %in% m}))))],'stopid'] <- piMat[piMat$vertex==5,'stopid']
+      
+      # Calculate optimal stopping goal reach count
+      if(path[min(which(path==goal), which(!sapply(path, function(i){pi.t[pi.t$vertex==i,'stopid']}) < c(15:0)[1:length(path)]))]==goal){
+        goalcount = goalcount + 1
+      }
     }
+    
   }
   full.exp <- rbind(full.exp, cur.exp)
 }
