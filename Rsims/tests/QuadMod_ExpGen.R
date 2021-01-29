@@ -66,7 +66,7 @@ piMat <- policy.generate(Edges=Edges, EVmat=EVmat, idmap=idmap)
 ## Generate experiment according to criteria
 # Goal visits conditional upon optimal stopping strategy
 # Cannot make more points by modular stopping vs optimal stopping
-sim.list <- foreach(i=1:nPP, .combine=list) %do% {
+sim.list <- foreach(i=1:nPP, .combine=append) %do% {
   goalTol <- T
   stratTol <- T
   while(goalTol | stratTol){
@@ -82,9 +82,11 @@ sim.list <- foreach(i=1:nPP, .combine=list) %do% {
   }
   list(full.exp=full.exp, AG.dat=rbind(OS.strat,MS.strat,LW.strat))
 }
-full.exp <- foreach(i = 1:nPP, .combine=rbind) %do% {sim.list[[i]]$full.exp}
-AG.dat   <- foreach(i = 1:nPP, .combine=rbind) %do% {sim.list[[i]]$AG.dat}
+full.exp <- foreach(i = seq(1,nPP*2,2), .combine=rbind) %do% {sim.list[[i]]}
+AG.dat   <- foreach(i = seq(2,nPP*2,2), .combine=rbind) %do% {sim.list[[i]]}
 remove(sim.list)
+write.csv(full.exp, file='data/QS_ExpGen_fullexp.csv')
+write.csv(AG.dat, file='data/QS_ExpGen_AG.csv')
 
 # Evaluate edges in line plots to check equal distribution
 Edge.eval <- matrix(rep(rep(0, nrow(Edge.list)),nPP), ncol=nPP)
@@ -119,4 +121,5 @@ ggplot(AG.dat, aes(fill=strat)) +
   scale_x_continuous(breaks=1:15, labels=1:15) #+
   #facet_grid(AG.dat$pp)
 
-
+# Calculate how often modular stopper sees wrong cluster!
+a
