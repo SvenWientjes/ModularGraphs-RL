@@ -177,7 +177,8 @@ exp.trans <- exp.trans[!duplicated(exp.trans),]
 
 # Make plots to identify if transitions deviate from random walk expectation W.R.T GOAL DIRECTEDNESS (not Edge/Node structural identity)
 pL <- list()
-k=c(0.25,0.75,0.5,0.25,0.25,0.75,0.5,0.25,0.25,0.75,0.25,0.75,0.25,0.25,0.75,0.25,0.75,0.25,0.25,0.75,0.5,0.25,0.5,0.25,0.75,0.25,0.25,0.25)
+#k=c(0.25,0.75,0.5,0.25,0.25,0.75,0.5,0.25,0.25,0.75,0.25,0.75,0.25,0.25,0.75,0.25,0.75,0.25,0.25,0.75,0.5,0.25,0.5,0.25,0.75,0.25,0.25,0.25)
+k = c(0.25,0.75,0.5,0.25,0.75,0.25,0.75,0.25,0.75,0.5,0.25,0.75,0.25,0.25,0.75,0.25,0.25,0.25,0.25,0.25,0.75,0.25,0.25,0.5,0.5,0.75,0.25,0.25)
 for(i in 1:nrow(exp.trans)){
 
   tempDat <- merge(full.exp.d[V1==exp.trans$V1[i] & V2==exp.trans$V2[i], .N, by=c('pp','step')][order(pp,step)],
@@ -195,7 +196,7 @@ for(i in 1:nrow(exp.trans)){
   
   pL[[i]] <- p
 }
-pdf('figs/ExpGen_TransCheck.pdf')
+pdf('figs/ExpGen_TransCheck_2.pdf')
 for(i in 1:length(pL)){
   print(pL[[i]])
 }
