@@ -122,4 +122,83 @@ ggplot(AG.dat, aes(fill=strat)) +
   #facet_grid(AG.dat$pp)
 
 # Calculate how often modular stopper sees wrong cluster!
-a
+apply(expand.grid(1:5,1:5),1, function(t){AG.dat[AG.dat$strat=='MS' & AG.dat$pp==t[1] & AG.dat$trial==t[2],]$nSteps < 15 & AG.dat[AG.dat$strat=='MS' & AG.dat$pp==t[1] & AG.dat$trial==t[2],]$trRew < 0})
+
+modStopped <- data.frame(pp = 1:nPP, mS = 0)
+for(p in 353:nPP){
+  modStopped[p,'mS'] <- sum(sapply(1:nTr, function(t){AG.dat[AG.dat$strat=='MS' & AG.dat$pp==p & AG.dat$trial==t,]$nSteps < 15 & AG.dat[AG.dat$strat=='MS' & AG.dat$pp==p & AG.dat$trial==t,]$trRew < 0}))
+}
+
+ggplot(modStopped, aes(x=mS)) +
+  geom_bar()
+
+## Unique transition ID - uniformity of multinomial given goal-directed transition type
+# Types: deep start, BTg, BTl, BIg, BIl, deep goal, deep leave, BTd, BId, deep disappoint
+
+# Get experiment into data.table because it is better in every way
+full.exp.d <- data.table(full.exp)
+
+# Define start and goal cluster per trial
+full.exp.d <- cbind(full.exp.d, full.exp.d[,list(step=step, 
+                                                 startc=names(idmap.g[sapply(idmap.g, function(m){v[1] %in% m})]),
+                                                 goalc=names(idmap.g[sapply(idmap.g, function(m){goal[1] %in% m})])),
+                                           by=c('pp','tr')][,c('startc','goalc')])
+
+# Define depending leave and disappoint cluster 
+full.exp.d <- cbind(full.exp.d, full.exp.d[,list(step=step,
+                                                 leavec=c.map[[startc[1]]][c.map[[startc[1]]]!=goalc[1]],
+                                                 disc=c.map[[goalc[1]]][c.map[[goalc[1]]]!=startc[1]]),
+                                           by=c('pp','tr')][,c('leavec','disc')])
+
+# Identify all node identities!
+full.exp.d <- full.exp.d[, list('ds'  = v %in% idmap.g[[startc]],
+                                'btg' = v %in% bt.map[[startc]][which(c.map[[startc]]==goalc)],
+                                'btl' = v %in% bt.map[[startc]][which(c.map[[startc]]!=goalc)],
+                                'big' = v %in% bt.map[[goalc]][which(c.map[[goalc]]==startc)],
+                                'bil' = v %in% bt.map[[leavec]][which(c.map[[leavec]]==startc)],
+                                'dg'  = v %in% idmap.g[[goalc]],
+                                'dl'  = v %in% idmap.g[[leavec]],
+                                'bid' = v %in% bt.map[[disc]][which(c.map[[disc]]==goalc)],
+                                'btd' = v %in% bt.map[[goalc]][which(c.map[[goalc]]!=startc)],
+                                'dd'  = v %in% idmap.g[[disc]],
+                                'bnd' = v %in% bt.map[[disc]][which(c.map[[disc]]==leavec)],
+                                'bnl' = v %in% bt.map[[leavec]][which(c.map[[leavec]]==disc)]), by=c('pp','tr','step')]
+
+# Reshape data.table into transition data instead of occupation data
+full.exp.d <- cbind(full.exp.d[, .SD[step %in% 0:(.N-2)], by=c('pp','tr')], f=full.exp.d[, .SD[step %in% 1:.N,], by=c('pp','tr')][,c('ds','btg','btl','big','bil','dg','dl','bid','btd','dd','bnd','bnl')])
+
+# Get experiment data into pre and post transition 
+exp.trans <- apply(full.exp.d[,4:27], 1, function(i){names(i)[which(as.logical(i))]})
+full.exp.d <- cbind(full.exp.d[,1:3], V1=exp.trans[1,], V2=exp.trans[2,])
+
+# List all unique transitions
+exp.trans <- data.table(exp.trans[1,], exp.trans[2,])
+exp.trans <- exp.trans[!duplicated(exp.trans),]
+
+# Make plots to identify if transitions deviate from random walk expectation W.R.T GOAL DIRECTEDNESS (not Edge/Node structural identity)
+pL <- list()
+k=c(0.25,0.75,0.5,0.25,0.25,0.75,0.5,0.25,0.25,0.75,0.25,0.75,0.25,0.25,0.75,0.25,0.75,0.25,0.25,0.75,0.5,0.25,0.5,0.25,0.75,0.25,0.25,0.25)
+for(i in 1:nrow(exp.trans)){
+
+  tempDat <- merge(full.exp.d[V1==exp.trans$V1[i] & V2==exp.trans$V2[i], .N, by=c('pp','step')][order(pp,step)],
+                   full.exp.d[V1==exp.trans$V1[i], .N, by=c('pp','step')][order(pp,step)],
+                   by=c('pp','step'))[,'N.p':=N.x/N.y]
+  tempDat$pp <- as.factor(tempDat$pp)
+  tempMean <- tempDat[,mean(N.p),by='step']
+  
+  p = ggplot() +
+        geom_line(data=tempDat, aes(x=step, y=N.p, col=pp, group=pp), alpha=0.2) +
+        geom_line(data=tempMean, aes(x=step, y=V1)) +
+        geom_hline(yintercept=k[i], color='red') +
+        theme(legend.position = 'none') +
+        ggtitle(paste0('from ',exp.trans$V1[i],' to ',gsub('f.','',exp.trans$V2[i])))
+  
+  pL[[i]] <- p
+}
+pdf('figs/ExpGen_TransCheck.pdf')
+for(i in 1:length(pL)){
+  print(pL[[i]])
+}
+dev.off()
+
+
