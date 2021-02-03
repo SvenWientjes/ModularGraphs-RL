@@ -217,7 +217,7 @@ sim.list <- foreach(i=1:nPP, .combine=append) %do% {
     
     # Perform adequacy tests
     goalTol = !abs(sum(LW.strat$trRew > 0) - nHit) <= floor(0.2*nHit)
-    stratTol = tail(OS.strat$totRew,1) < 250 | tail(MS.strat$totRew,1) < 250 | tail(OS.strat$totRew,1) > 750 | tail(MS.strat$totRew,1) > 750 | tail(MS.strat$totRew,1) > tail(OS.strat$totRew,1)
+    stratTol = tail(OS.strat$totRew,1) < 170 | tail(MS.strat$totRew,1) < 170 | tail(OS.strat$totRew,1) > 570 | tail(MS.strat$totRew,1) > 570 | tail(MS.strat$totRew,1) > tail(OS.strat$totRew,1)
   }
   list(full.exp=full.exp, AG.dat=rbind(OS.strat,MS.strat,LW.strat))
 }
@@ -288,7 +288,7 @@ exp.trans <- exp.trans[!duplicated(exp.trans),]
 # Make plots to identify if transitions deviate from random walk expectation W.R.T GOAL DIRECTEDNESS (not Edge/Node structural identity)
 pL <- list()
 k = c(0.5,0.25,0.25,0.75,0.25,0.25,0.75,0.5,0.25,0.25,0.75,0.5,0.25,0.75,0.75,0.25,0.25,0.25,0.25,0.75,0.25,0.75,0.5,0.25,0.25,0.75,0.25,0.25)
-k = c(0.5,0.25,0.75,0.25,0.25,0.75,0.25,0.25,0.75,0.5,0.25,0.25,0.75,0.75,0.25,0.75,0.25,0.75,0.25,0.25,0.25,0.25,0.5,0.5,0.25,0.75,0.25,0.25)
+k = c(0.5,0.25,0.75,0.25,0.75,0.25,0.75,0.25,0.25,0.25,0.5,0.25,0.75,0.75,0.5,0.25,0.25,0.75,0.25,0.25,0.25,0.75,0.25,0.75,0.5,0.25,0.25,0.25)
 for(i in 1:nrow(exp.trans)){
   
   tempDat <- merge(full.exp.d[V1==exp.trans$V1[i] & V2==exp.trans$V2[i], .N, by=c('pp','step')][order(pp,step)],
@@ -307,7 +307,7 @@ for(i in 1:nrow(exp.trans)){
   
   pL[[i]] <- p
 }
-pdf('figs/ExpGen_TransCheck_4.pdf')
+pdf('figs/ExpGen_TransCheck_6_170_570.pdf')
 for(i in 1:length(pL)){
   print(pL[[i]])
 }
