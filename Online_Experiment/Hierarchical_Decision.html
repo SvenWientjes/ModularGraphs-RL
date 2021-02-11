@@ -5,6 +5,7 @@
         <script src="jspsych-6.2.0/jspsych.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-html-keyboard-response.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-image-keyboard-response.js"></script>
+        <script src="jspsych-6.2.0/plugins/jspsych-fullscreen.js"></script>
         <script src="js/screens.js"></script> <!-- Experiment defining variables -->
         <link href="jspsych-6.2.0/css/jspsych.css" rel="stylesheet" type="text/css">
     </head>
@@ -50,6 +51,12 @@
 
     // Define logical: How did a miniblock end? (early, getgoal, missgoal)
     var mbendf = 'early';
+
+    // Go fullscreen from here on out
+    timeline.push({
+        type: 'fullscreen',
+        fullscreen_mode: true
+    });
 
     // Set up the fixation cross
     var fixation = {
@@ -109,14 +116,15 @@
         // Define the goalcue by getting from corresponding goalorder idx
         var goalcue = {
             type: 'image-keyboard-response',
+            stimulus_width: 1920,
             choices: [32],
             stimulus: goals[goalorder[i]],
-            prompt: 'You are looking for this stimulus. Press the space bar to continue.'
         }
 
         var trial = {
             type: 'image-keyboard-response',
             trial_duration: 1500,
+            stimulus_width: 1920,
             choices: [32], //space,
             response_ends_trial: function(){return jsPsych.timelineVariable('trialidx',true) != 0},
             stimulus: jsPsych.timelineVariable('stimulus'), //node_imgs in order determined by trialorder

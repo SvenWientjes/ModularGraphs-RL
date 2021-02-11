@@ -12,7 +12,7 @@
  .jspsych-display-element {
    display: flex;
    flex-direction: column;
-   overflow-y: auto;
+   overflow-y: auto; /* Change to 'hidden' when truly running Hierarchical_Decision as experiment */
  }
 
  .jspsych-display-element:focus {
@@ -27,7 +27,7 @@
  }
 
  .jspsych-content {
-   max-width: 95%; /* this is mainly an IE 10-11 fix */
+   max-width: 100%; /* this is mainly an IE 10-11 fix */
    text-align: center;
    margin: auto; /* this is for overflowing content */
  }

@@ -6,13 +6,13 @@ var trialorder = [
     [3,4,5,2,1,0]
 ];
 
-var goalorder = [0,0,0,0,0];
+var goalorder = [2,1,0,3,4];
 
 // List of room images (idx = node nr)
 var rooms = ['img/Balloon.png', 'img/Book.png', 'img/Calculator.png', 'img/Cap.png', 'img/Floppy.png', 'img/Fryingpan.png'];
 
 // List of goal images (idx = node nr -> correspond to rooms!)
-var goals = ['img/goal_cue.png'];
+var goals = ['img/Balloon_goal.png', 'img/Book_goal.png', 'img/Calculator_goal.png', 'img/Cap_goal.png', 'img/Floppy_goal.png', 'img/Fryingpan_goal.png'];
 
 // Defines the strings to pass through blockend.
 function miniblockFb(mbend){
