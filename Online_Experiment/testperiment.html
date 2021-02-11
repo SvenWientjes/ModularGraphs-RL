@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>My experiment</title>
+        <script src="jspsych-6.2.0/jspsych.js"></script>
+        <script src="jspsych-6.2.0/plugins/jspsych-html-keyboard-response.js"></script>
+        <script src="jspsych-6.2.0/plugins/jspsych-image-keyboard-response.js"></script>
+        <script src="js/screens.js"></script> <!-- Experiment defining variables -->
+        <link href="jspsych-6.2.0/css/jspsych.css" rel="stylesheet" type="text/css">
+    </head>
+    <body></body>
+    <script>
+
+    /* Create timeline */
+    var timeline = [];
+    
+    /* Define welcome screen */
+    var welcome = {
+        type: "html-keyboard-response",
+        stimulus: "Welcome to the experiment. Press any key to begin."
+    };
+
+    /* Add welcome screen to timeline */
+    timeline.push(welcome);
+
+    /* Define the instruction screen */
+    var instructions = {
+        type: "html-keyboard-response",
+        stimulus: "<p>In this experiment, a circle will appear in the center of the screen.</p>"+
+        "<p>If the circle is <strong>blue</strong>, press the letter F on the keyboard as fast "+
+        "as you can.</p><p>If the circle in <strong>orange</strong>, press the letter J as fast"+
+        " as you can.</p>"+
+        "<div style='width: 700px;'>"+
+        "<div style='float: left;'><img src='img/blue.png'</img>" +
+        "<p class='small'><strong>Press the F key</strong></p></div>" +
+        "<div style='float: right;'><img src='img/orange.png'</img>" +
+        "<p class='small'><strong>Press the J key</strong></p></div></div>"+
+        "<p>Press any key to begin.</p>",
+        post_trial_gap: 2000
+    };
+
+    // Add instruction screen to timeline 
+    timeline.push(instructions);
+
+    // Generate array of preloading images
+    var pre_load_stimuli = [rooms, goals];
+
+    // Define earned points throughout experiment (will be updated)
+    var total_reward = 65;
+
+    // Define logical: How did a miniblock end? (early, getgoal, missgoal)
+    var mbendf = 'early';
+
+    // Set up the fixation cross
+    var fixation = {
+        type: 'html-keyboard-response',
+        stimulus: '<div style="font-size:60px;">+</div>',
+        choices: jsPsych.NO_KEYS,
+        trial_duration: function(){
+            return [250,500,750,1000,1250,1500,1750,2000][Math.floor(Math.random()*8)]
+        }
+    }
+
+    // Message at the end of a miniblock
+    var blockend = {
+        type: 'html-keyboard-response',
+        stimulus: function(){return miniblockFb(mbendf)},
+        choices: [32]
+    }
+
+    // Define a miniblock!
+    for (var i=0; i<5; i++) {
+        // Get images in array in order of presentation on trial 
+        var node_imgs = [];
+        for (var j=0; j<6; j++) { //iterate over trialorder to add stimuli
+            node_imgs.push({
+                stimulus: rooms[trialorder[i][j]],
+                trialidx: j
+            });
+        }
+
+        // Define the goalcue by getting from corresponding goalorder idx
+        var goalcue = {
+            type: 'image-keyboard-response',
+            choices: [32],
+            stimulus: goals[goalorder[i]],
+            prompt: 'You are looking for this stimulus. Press the space bar to continue.'
+        }
+
+        var trial = {
+            type: 'image-keyboard-response',
+            trial_duration: 1500,
+            choices: [32], //space,
+            response_ends_trial: function(){return jsPsych.timelineVariable('trialidx',true) != 0},
+            stimulus: jsPsych.timelineVariable('stimulus'), //node_imgs in order determined by trialorder
+            data: {
+                miniblock: i,
+                trial: jsPsych.timelineVariable('trialidx'),
+                totRew: function(){
+                    return total_reward;
+                },
+                node: function(){return rooms.indexOf(jsPsych.timelineVariable('stimulus', true))}, //node nr determined by idx of rooms
+                goalnode: goalorder[i],
+            },
+            on_finish: function(data) {
+                if (data.key_press == 32 && data.node == data.goalnode) { // Correct goal response
+                    total_reward = total_reward + 65; // Increment experiment reward
+                    data.totRew = total_reward;       // Correct current trial reward
+                    mbendf = 'getgoal';
+                    jsPsych.endCurrentTimeline();
+                };
+                if (data.key_press == 32 && data.node != data.goalnode && data.trial != 0) { // Early ending
+                    total_reward = total_reward - 1; // Pay step cost
+                    data.totRew = total_reward;      // Correct current trial reward
+                    mbendf = 'early'
+                    jsPsych.endCurrentTimeline();
+                };
+                if (data.key_press == null && data.node != data.goalnode && data.trial != 0) { // Regular progression
+                    total_reward = total_reward - 1; // Pay step cost
+                    data.totRew = total_reward;      // Correct current trial reward
+                };
+                if (data.key_press == null && data.node == data.goalnode) { // Missed responding to goal
+                    total_reward = total_reward - 1; // Pay step cost
+                    data.totRew = total_reward;      // Correct current trial reward
+                    mbendf = 'missgoal';
+                    jsPsych.endCurrentTimeline();
+                }
+            }
+        }
+
+        var miniblock = {
+            timeline: [fixation, trial],
+            timeline_variables: node_imgs,
+        }
+
+        // Push into timeline 
+        timeline.push(goalcue);
+        timeline.push(miniblock);
+        timeline.push(blockend);
+    } 
+
+    // Start the experiment
+    jsPsych.init({
+        timeline: timeline,
+        preload_images: pre_load_stimuli,
+        on_finish: function() {
+            jsPsych.data.displayData();
+        }
+    });
+
+    </script>
+</html>
