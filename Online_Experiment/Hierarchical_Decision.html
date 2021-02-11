@@ -68,6 +68,31 @@
         choices: [32]
     }
 
+    // Feedback w.r.t Points
+    var pointfb = {
+        type: 'html-keyboard-response',
+        stimulus: function(){
+            var nSteps = jsPsych.data.get().last(2).values()[0].nSteps;
+            var trRew = jsPsych.data.get().last(2).values()[0].trRew;
+            var nGoals = jsPsych.data.get().filter({decision: 'getgoal'}).count();
+            if(trRew < 0){
+                return '<p>In this block you made <span style="color: #ff0000">' +
+                trRew + ' points</span>. Stay strong!</p>' +
+                '<p>This block, you took a total of <span style="color: #ae7bdd">' + nSteps + ' steps</span>.</p>' +
+                '<p>In total, you have collected the goal <span style="color: #ae7bdd">' + nGoals + ' times</span>.</p>'+
+                '<p>In total you now have <span style="color: #93c54b">' + total_reward + ' points</span>.</p>'
+            } else if (trRew > 0){
+                return '<p>In this block you made <span style="color: #93c54b">' +
+                trRew + ' points</span>. Congratulations!</p>' +
+                '<p>This block, you took a total of <span style="color: #ae7bdd">' + nSteps + ' steps</span>.</p>' +
+                '<p>In total, you have collected the goal <span style="color: #ae7bdd">' + nGoals + ' times</span>.</p>'+
+                '<p>In total you now have <span style="color: #93c54b">' + total_reward + ' points</span>.</p>'
+            }
+            
+        },
+        choices: [32]
+    }
+
     // Define a miniblock!
     for (var i=0; i<5; i++) {
         // Get images in array in order of presentation on trial 
@@ -78,6 +103,8 @@
                 trialidx: j
             });
         }
+
+        var trRew = 0; // Variable tracks reward differential per trial within miniblock
 
         // Define the goalcue by getting from corresponding goalorder idx
         var goalcue = {
@@ -95,34 +122,52 @@
             stimulus: jsPsych.timelineVariable('stimulus'), //node_imgs in order determined by trialorder
             data: {
                 miniblock: i,
-                trial: jsPsych.timelineVariable('trialidx'),
+                nSteps: jsPsych.timelineVariable('trialidx'),
                 totRew: function(){
                     return total_reward;
+                },
+                trRew: function(){
+                    return trRew;
                 },
                 node: function(){return rooms.indexOf(jsPsych.timelineVariable('stimulus', true))}, //node nr determined by idx of rooms
                 goalnode: goalorder[i],
             },
             on_finish: function(data) {
                 if (data.key_press == 32 && data.node == data.goalnode) { // Correct goal response
-                    total_reward = total_reward + 65; // Increment experiment reward
+                    total_reward = total_reward + 64; // Increment experiment reward but also pay step cost
                     data.totRew = total_reward;       // Correct current trial reward
+                    trRew = trRew + 64;               // Track miniblock-reward
+                    data.trRew = trRew;               // Append to trial data
                     mbendf = 'getgoal';
+                    data.decision = mbendf;           // Append participant decision to trial data
+                    trRew = 0;                        // Reset miniblock-reward for next miniblock
                     jsPsych.endCurrentTimeline();
                 };
-                if (data.key_press == 32 && data.node != data.goalnode && data.trial != 0) { // Early ending
+                if (data.key_press == 32 && data.node != data.goalnode && data.nSteps != 0) { // Early ending
                     total_reward = total_reward - 1; // Pay step cost
                     data.totRew = total_reward;      // Correct current trial reward
+                    trRew = trRew - 1;               // Track miniblock-reward
+                    data.trRew = trRew;              // Append to trial data
                     mbendf = 'early'
+                    data.decision = mbendf;          // Append participant decision to trial data
+                    trRew = 0;                       // Reset miniblock-reward for next miniblock
                     jsPsych.endCurrentTimeline();
                 };
-                if (data.key_press == null && data.node != data.goalnode && data.trial != 0) { // Regular progression
+                if (data.key_press == null && data.node != data.goalnode && data.nSteps != 0) { // Regular progression
                     total_reward = total_reward - 1; // Pay step cost
                     data.totRew = total_reward;      // Correct current trial reward
+                    trRew = trRew - 1;               // Track miniblock-reward
+                    data.trRew = trRew;              // Append to trial data
+                    data.decision = 'wait';          // Append participant decision to trial data
                 };
                 if (data.key_press == null && data.node == data.goalnode) { // Missed responding to goal
                     total_reward = total_reward - 1; // Pay step cost
                     data.totRew = total_reward;      // Correct current trial reward
+                    trRew = trRew - 1;               // Track miniblock-reward
+                    data.trRew = trRew;              // Append to trial data
                     mbendf = 'missgoal';
+                    data.decision = mbendf;          // Append participant decision to trial data
+                    trRew = 0;                       // Reset miniblock-reward for next miniblock
                     jsPsych.endCurrentTimeline();
                 }
             }
@@ -137,6 +182,7 @@
         timeline.push(goalcue);
         timeline.push(miniblock);
         timeline.push(blockend);
+        timeline.push(pointfb);
     } 
 
     // Start the experiment
