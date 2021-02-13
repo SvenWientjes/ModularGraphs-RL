@@ -60,8 +60,8 @@
 
     // Set up the fixation cross
     var fixation = {
-        type: 'html-keyboard-response',
-        stimulus: '<div style="font-size:60px;">+</div>',
+        type: 'image-keyboard-response',
+        stimulus: 'img/fixation_cross.png',
         choices: jsPsych.NO_KEYS,
         trial_duration: function(){
             return [250,500,750,1000,1250,1500,1750,2000][Math.floor(Math.random()*8)]
