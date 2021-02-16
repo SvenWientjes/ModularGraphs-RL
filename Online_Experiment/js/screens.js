@@ -1,18 +1,14 @@
-var trialorder = [
-    [1,0,2,3,4,5],
-    [5,4,3,2,1,0],
-    [2,1,0,5,4,3],
-    [5,4,3,0,1,2],
-    [3,4,5,2,1,0]
-];
-
-var goalorder = [2,1,0,3,4];
-
 // List of room images (idx = node nr)
-var rooms = ['img/Balloon.png', 'img/Book.png', 'img/Calculator.png', 'img/Cap.png', 'img/Floppy.png', 'img/Fryingpan.png'];
+var rooms = ['img/Balloon.png', 'img/Basket.png', 'img/Book.png', 'img/Boot.png', 'img/Calculator.png', 'img/Cap.png', 
+'img/Clipboard.png', 'img/Floppy.png', 'img/Fryingpan.png', 'img/Iron.png', 'img/Jar.png', 'img/Lantern.png',
+'img/Lightbulb.png', 'img/Mug.png', 'img/Ovenmitt.png', 'img/Pot.png', 'img/Soapdispenser.png', 'img/Tapedispenser.png',
+'img/Toaster.png', 'img/Toiletpaper.png'];
 
 // List of goal images (idx = node nr -> correspond to rooms!)
-var goals = ['img/Balloon_goal.png', 'img/Book_goal.png', 'img/Calculator_goal.png', 'img/Cap_goal.png', 'img/Floppy_goal.png', 'img/Fryingpan_goal.png'];
+var goals = ['img/Balloon_goal.png', 'img/Basket_goal.png', 'img/Book_goal.png', 'img/Boot_goal.png', 'img/Calculator_goal.png', 'img/Cap_goal.png', 
+'img/Clipboard_goal.png', 'img/Floppy_goal.png', 'img/Fryingpan_goal.png', 'img/Iron_goal.png', 'img/Jar_goal.png', 'img/Lantern_goal.png',
+'img/Lightbulb_goal.png', 'img/Mug_goal.png', 'img/Ovenmitt_goal.png', 'img/Pot_goal.png', 'img/Soapdispenser_goal.png', 'img/Tapedispenser_goal.png',
+'img/Toaster_goal.png', 'img/Toiletpaper_goal.png'];
 
 // Defines the strings to pass through blockend.
 function miniblockFb(mbend){
