@@ -5,9 +5,11 @@
         <script src="jspsych-6.2.0/jspsych.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-html-keyboard-response.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-image-keyboard-response.js"></script>
+        <script src="jspsych-6.2.0/plugins/jspsych-survey-text.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-fullscreen.js"></script>
         <script src="js/screens.js"></script> <!-- Experiment defining variables -->
-        <script src="js/structure.js"></script> <!-- Experiment defining variables -->
+        <script src="js/trajectories.js"></script> <!-- Experiment defining variables -->
+        <script src="js/goallist.js"></script> <!-- Experiment defining variables -->
         <link href="jspsych-6.2.0/css/jspsych.css" rel="stylesheet" type="text/css">
     </head>
     <body></body>
@@ -25,7 +27,7 @@
     /* Add welcome screen to timeline */
     timeline.push(welcome);
 
-    /* Define the instruction screen */
+    /* Define the instruction screen 
     var instructions = {
         type: "html-keyboard-response",
         stimulus: "<p>In this experiment, a circle will appear in the center of the screen.</p>"+
@@ -39,10 +41,47 @@
         "<p class='small'><strong>Press the J key</strong></p></div></div>"+
         "<p>Press any key to begin.</p>",
         post_trial_gap: 2000
+    };*/
+
+    var instructions = {
+        type: "html-keyboard-response",
+        stimulus: "<p>This screen will contain the instructions for the task.</p>"+
+        "<p>We might use multiple instruction screens to properly display the "+
+        "different types of screens (goal, start, feedback, etc) the participant can encounter.</p>"+
+        "<p>We should also instruct them they have to press the spacebar.</p>",
+        post_trial_gap: 2000
+    };
+
+    var survey_trial = {
+        type: 'survey-text',
+        questions: [
+            {prompt: "How old are you?", name: 'Age'}, 
+            {prompt: "Where were you born?", name: 'BirthLocation'},
+            {prompt: "What is your participant number?", name: 'Ppn'}
+        ],
+        on_finish: function(data) {
+            pResponses = JSON.parse(data.responses);
+            var PN = parseInt(pResponses.Ppn);
+        }
     };
 
     // Add instruction screen to timeline 
     timeline.push(instructions);
+    timeline.push(survey_trial);
+    
+    // Define which trajectories to follow (pregenerated participant / experiments)
+    var trialorder = trajectories[1];
+    var goalorder = goallist[1];
+
+    // Get rooms and goals into shuffled order
+    var idxArray = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19];
+    var shfIdx = jsPsych.randomization.shuffle(idxArray);
+
+    var rooms = [];
+    shfIdx.forEach(i => rooms.push(roomsdef[i]));
+    var goals = [];
+    shfIdx.forEach(i => goals.push(goalsdef[i]));
+    console.log(rooms);
 
     // Generate array of preloading images
     var pre_load_stimuli = [rooms, goals];
@@ -83,29 +122,18 @@
             var nSteps = jsPsych.data.get().last(2).values()[0].nSteps;
             var trRew = jsPsych.data.get().last(2).values()[0].trRew;
             var nGoals = jsPsych.data.get().filter({decision: 'getgoal'}).count();
-            if(trRew < 0){
-                return '<p>In this block you made <span style="color: #ff0000">' +
-                trRew + ' points</span>. Stay strong!</p>' +
-                '<p>This block, you took a total of <span style="color: #ae7bdd">' + nSteps + ' steps</span>.</p>' +
-                '<p>In total, you have collected the goal <span style="color: #ae7bdd">' + nGoals + ' times</span>.</p>'+
-                '<p>In total you now have <span style="color: #93c54b">' + total_reward + ' points</span>.</p>'
-            } else if (trRew > 0){
-                return '<p>In this block you made <span style="color: #93c54b">' +
-                trRew + ' points</span>. Congratulations!</p>' +
-                '<p>This block, you took a total of <span style="color: #ae7bdd">' + nSteps + ' steps</span>.</p>' +
-                '<p>In total, you have collected the goal <span style="color: #ae7bdd">' + nGoals + ' times</span>.</p>'+
-                '<p>In total you now have <span style="color: #93c54b">' + total_reward + ' points</span>.</p>'
-            }
+            var trLeft = jsPsych.data.get().last(2).values()[0].miniblock;
+            return fbScreen(nSteps, nGoals, trRew, trLeft, total_reward);
             
         },
         choices: [32]
     }
 
     // Define a miniblock!
-    for (var i=0; i<5; i++) {
+    for (var i=0; i<100; i++) {
         // Get images in array in order of presentation on trial 
         var node_imgs = [];
-        for (var j=0; j<6; j++) { //iterate over trialorder to add stimuli
+        for (var j=0; j<16; j++) { //iterate over trialorder to add stimuli
             node_imgs.push({
                 stimulus: rooms[trialorder[i][j]],
                 trialidx: j
@@ -178,6 +206,11 @@
                     data.decision = mbendf;          // Append participant decision to trial data
                     trRew = 0;                       // Reset miniblock-reward for next miniblock
                     jsPsych.endCurrentTimeline();
+                };
+                if (data.key_press == null && data.nSteps == 15 && data.node != data.goalnode) { // Waited through entire block
+                    mbendf = 'nogoal';
+                    data.decision = mbendf;
+                    trRew = 0;
                 }
             }
         }
@@ -199,7 +232,8 @@
         timeline: timeline,
         preload_images: pre_load_stimuli,
         on_finish: function() {
-            jsPsych.data.displayData();
+            //jsPsych.data.displayData('csv');
+            jsPsych.data.get().localSave('csv','mydata.csv');
         }
     });
 

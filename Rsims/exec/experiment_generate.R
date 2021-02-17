@@ -174,7 +174,16 @@ for(i in 1:length(pL)){
 }
 dev.off()
 
+# Coerce trajectories into suitable csv for loading into javascript
+test2sub <- paste0('var trajectories = [',paste(sapply(1:nPP, function(p){paste0('[',paste(sapply(1:nTr, function(tri){paste0('[',toString(full.exp.2[pp==p & tr==tri,v]-1),']')}), collapse=', \n'),']')}), collapse= ', \n'), '];')
+write1sub <- file('data/trajectories.js')
+writeLines(test2sub, write1sub)
+close(write1sub)
 
+goal2sub <- paste0('var goallist = [',paste(sapply(1:nPP, function(p){paste0('[',paste(sapply(1:nTr, function(tri){full.exp.2[pp==p & tr==tri,goal][1]-1}), collapse=', '),']')}), collapse=', \n'),'];')
+write1sub <- file('data/goallist.js')
+writeLines(goal2sub, write1sub)
+close(write1sub)
 
 
 
