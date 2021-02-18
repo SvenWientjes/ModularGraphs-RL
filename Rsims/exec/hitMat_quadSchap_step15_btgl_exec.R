@@ -42,7 +42,7 @@ hitMat <- data.frame(vertex=rep(inspect.Vertices,each=nSteps), steps=rep(1:nStep
 
 for(v in inspect.Vertices){
   starttime <- Sys.time() #Get time of loop
-  hitMatCount <- foreach(i=1:2, .combine=rbind) %dopar% {
+  hitMatCount <- foreach(i=1:30, .combine=rbind) %dopar% {
     
     MCounter <- rep(0, nSteps+1)
     while(Sys.time() < (starttime + 2*60*60)){ #Run for set amount of time (hr*min*sec)
