@@ -48,22 +48,15 @@ OS.apply.QS <- function(experiment, piMat, idmap.g, c.map, bt.map, gRew, sCost, 
 }
 
 MS.apply.QS <- function(experiment, bt.map, c.map, idmap.g, gRew, sCost, parNum){
-  AG.dat <- data.table(pp=parNum, trial=1:max(experiment$tr), trRew=0, nSteps=0, endV=0, totRew=0, strat='MS')
+  AG.dat <- data.frame(pp=parNum, trial=1:max(experiment$tr), trRew=0, nSteps=0, endV=0, totRew=0, strat='MS')
   totRew <- 0
-  for(tri in unique(experiment$tr)){
-    goal <- as.numeric(unlist(experiment[tr==tri & step==0, 'goal']))
-    path <- as.numeric(unlist(experiment[tr==tri, 'v']))
+  for(tr in unique(experiment$tr)){
+    goal <- experiment[experiment$tr==tr & experiment$step==0, 'goal']
+    path <- experiment[experiment$tr==tr, 'v']
     
     # Find start and goal associated cluster
     start.c <- names(idmap.g[sapply(idmap.g, function(m){head(path,1) %in% m})])
     goal.c  <- names(idmap.g[sapply(idmap.g, function(m){goal %in% m})])
-    if(identical(start.c, character(0))){
-      start.c <- names(sapply(bt.map, function(m){path[1] %in% m})[which(sapply(bt.map, function(m){path[1] %in% m}))])
-    }
-    if(identical(goal.c, character(0))){
-      goal.c <- names(sapply(bt.map, function(m){goal %in% m})[which(sapply(bt.map, function(m){goal %in% m}))])
-    }
-    
     
     # Find leaving cluster transitions
     modTrans <- c(bt.map[[start.c]][which(c.map[[start.c]] != goal.c)],bt.map[[c.map[[start.c]][c.map[[start.c]] != goal.c]]][which(c.map[[c.map[[start.c]][c.map[[start.c]] != goal.c]]]==start.c)])
@@ -73,12 +66,12 @@ MS.apply.QS <- function(experiment, bt.map, c.map, idmap.g, gRew, sCost, parNum)
       if(path[p]==goal){
         trRew <- gRew - sCost*(p-1)
         totRew <- totRew + trRew
-        AG.dat[trial==tri,] <- data.table(pp=parNum, trial=tri, trRew=trRew, nSteps=which(path==goal)-1, endV=goal, totRew=totRew, strat='MS')
+        AG.dat[AG.dat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=which(path==goal)-1, endV=goal, totRew=totRew, strat='MS')
         break
       }else if( (T %in% apply(modTrans, 1, function(x){identical(x,c(path[p-1],path[p]))})) | (p==length(path))){
         trRew <- -sCost * (p-1)
         totRew <- totRew + trRew
-        AG.dat[trial==tri,] <- data.table(pp=parNum, trial=tri, trRew=trRew, nSteps=p-1, endV=path[p], totRew=totRew, strat='MS')
+        AG.dat[AG.dat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=p-1, endV=path[p], totRew=totRew, strat='MS')
         break
       }
     }
@@ -87,20 +80,20 @@ MS.apply.QS <- function(experiment, bt.map, c.map, idmap.g, gRew, sCost, parNum)
 }
 
 LW.apply.QS <- function(experiment, gRew, sCost, parNum){
-  AG.dat <- data.table(pp=parNum, trial=1:max(experiment$tr), trRew=0, nSteps=0, endV=0, totRew=0, strat='LW')
+  AG.dat <- data.frame(pp=parNum, trial=1:max(experiment$tr), trRew=0, nSteps=0, endV=0, totRew=0, strat='LW')
   totRew <- 0
-  for(tri in unique(experiment$tr)){
-    goal <- unlist(experiment[tr==tri & step==0, 'goal'])
-    path <- unlist(experiment[tr==tri, 'v'])
+  for(tr in unique(experiment$tr)){
+    goal <- experiment[experiment$tr==tr & experiment$step==0, 'goal']
+    path <- experiment[experiment$tr==tr, 'v']
     
     if(goal %in% path){
       trRew <- gRew - sCost * (which(path==goal)-1)
       totRew <- totRew + trRew
-      AG.dat[AG.dat$trial==tri,] <- data.table(pp=parNum, trial=tri, trRew=trRew, nSteps=which(path==goal)-1, endV=goal, totRew=totRew, strat='LW')
+      AG.dat[AG.dat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=which(path==goal)-1, endV=goal, totRew=totRew, strat='LW')
     }else if(!goal %in% path){
       trRew <- -sCost*(length(path)-1)
       totRew <- totRew + trRew
-      AG.dat[AG.dat$trial==tri,] <- data.table(pp=parNum, trial=tri, trRew=trRew, nSteps=length(path)-1, endV=tail(path,1), totRew=totRew, strat='LW')
+      AG.dat[AG.dat$trial==tr,] <- data.frame(pp=parNum, trial=tr, trRew=trRew, nSteps=length(path)-1, endV=tail(path,1), totRew=totRew, strat='LW')
     }
   }
   return(AG.dat)
