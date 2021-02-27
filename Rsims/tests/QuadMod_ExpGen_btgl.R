@@ -71,14 +71,20 @@ piMat.b <- policy.generate(Edges=Edges, EVmat=EVmat.b, idmap=idmap.bg)
 
 ## Generate experiment according to criteria ----
 sim.list <- foreach(i = 1:nPP, .combine=append) %do% {
-  typetol = T
   
-  while(typetol){
-    expNow <- Exp.gen(Edges=Edges, nSteps=nSteps, nTr=nTr, c.map=c.map, idmap.g=idmap.g, bt.map=bt.map, parNum=i)
-    typetol = !(abs(sum(expNow[step==0,trtype]=='deep') - 12/20*nTr) <= 0.1*nTr) | !(abs(sum(expNow[step==0,trtype]=='goalclose') - sum(expNow[step==0,trtype]=='goalfar')) < 0.05*nTr)
+  rewtol  = T
+  
+  while(rewtol){
+    typetol = T
+    while(typetol){
+      expNow <- Exp.gen(Edges=Edges, nSteps=nSteps, nTr=nTr, c.map=c.map, idmap.g=idmap.g, bt.map=bt.map, parNum=i)
+      typetol = !(abs(sum(expNow[step==0,trtype]=='deep') - 12/20*nTr) <= 0.1*nTr) | !(abs(sum(expNow[step==0,trtype]=='goalclose') - sum(expNow[step==0,trtype]=='goalfar')) < 0.05*nTr)
+    }
+    LW.strat <- LW.apply.QS(experiment=expNow, gRew=gRew, sCost=sCost, parNum=i)
+    MS.strat <- MS.apply.QS(experiment=expNow, bt.map=bt.map, c.map=c.map, idmap.g=idmap.g, gRew=gRew, sCost=sCost, parNum=i)
+    rewtol = !abs(LW.strat[trial==100, totRew] - 460) < 160
   }
-  LW.strat <- LW.apply.QS(experiment=expNow, gRew=gRew, sCost=sCost, parNum=i)
-  MS.strat <- MS.apply.QS(experiment=expNow, bt.map=bt.map, c.map=c.map, idmap.g=idmap.g, gRew=gRew, sCost=sCost, parNum=i)
+  
   
   list(full.exp=expNow, AG.dat=rbind(LW.strat,MS.strat))
 }
