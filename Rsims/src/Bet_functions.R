@@ -89,3 +89,40 @@ policyBet <- function(curV, goalV, goal.c, idmap.g, bt.map, c.map, idmap.d, idma
     return(stopIdx[vertex %in% idmap.d[[names(which(sapply(newPol, function(m){curV %in% m})))]],V1])
   }
 }
+
+symmetry.get <- function(curV, goalV, goal.c, idmap.g, bt.map, c.map, idmap.d, idmap.bg){
+  
+  if(goalV %in% unlist(bt.map)){
+    close.c <- c.map[[goal.c]][bt.map[[goal.c]]==goalV]
+    far.c   <- c.map[[goal.c]][bt.map[[goal.c]]!=goalV]
+    leave.c <- c('a','b','c','d')[!c('a','b','c','d') %in% c(goal.c,close.c,far.c)]
+    
+    newPol <- list(a = bt.map[[close.c]][c.map[[close.c]]!=goal.c],
+                   b = idmap.g[[close.c]],
+                   c = bt.map[[close.c]][c.map[[close.c]]==goal.c],
+                   d = idmap.g[[goal.c]],
+                   e = bt.map[[goal.c]][c.map[[goal.c]]==far.c],
+                   f = bt.map[[far.c]][c.map[[far.c]]==goal.c],
+                   g = idmap.g[[far.c]],
+                   h = bt.map[[far.c]][c.map[[far.c]]!=goal.c],
+                   i = bt.map[[leave.c]][c.map[[leave.c]]==far.c],
+                   j = idmap.g[[leave.c]],
+                   k = bt.map[[leave.c]][c.map[[leave.c]]==close.c]
+    )
+    return(names(which(sapply(newPol, function(m){curV %in% m}))))
+  }else{
+    lat.c <- names(which(sapply(c.map, function(m){goal.c %in% m})))
+    leave.c <- c('a','b','c','d')[!c('a','b','c','d') %in% c(goal.c,lat.c)]
+    
+    newPol <- list(a = sapply(lat.c, function(m){bt.map[[m]][c.map[[m]]!=goal.c]}),
+                   b = unlist(idmap.g[lat.c]),
+                   c = sapply(lat.c, function(m){bt.map[[m]][c.map[[m]]==goal.c]}),
+                   d = bt.map[[goal.c]],
+                   e = idmap.g[[goal.c]][idmap.g[[goal.c]]!=goalV],
+                   f = bt.map[[leave.c]],
+                   g = idmap.g[[leave.c]])
+    return(names(which(sapply(newPol, function(m){curV %in% m}))))  
+  }
+}
+
+

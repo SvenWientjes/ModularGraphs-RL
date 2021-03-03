@@ -7,6 +7,7 @@ library(reshape2)
 library(data.table)
 library(zoo)
 library(rstan)
+library(bayesplot)
 
 # Load Functions from /src/
 sapply(paste0('src/',list.files('src/')), source)
@@ -89,6 +90,9 @@ full.exp <- foreach(p = 1:nPP, .combine=rbind) %do% {
   full.exp[, goal.c:=substring(names(which(sapply(unlist(c(idmap.g, bt.map), use.names=T), function(m){goal[1] %in% m}))),1,1), by=tr
            ][, start.c:=substring(names(which(sapply(unlist(c(idmap.g, bt.map), use.names=T), function(m){v[1] %in% m}))),1,1), by=tr]
   
+  # Get mirror symmetry identity w.r.t. goal
+  full.exp[, sym.id:=symmetry.get(v, goal, goal.c, idmap.g, bt.map, c.map, idmap.d, idmap.bg), by=.(pp,tr,stepsleft)]
+  
   # Define random strategy
   full.exp[v!=goal, rand.choice:=sample(c(-1,1),1), by=.(tr,stepsleft)       #Sample random choice increments
            ][,rand.trBet := na.locf(bet.sum(rand.choice,startP)),by=tr       #Add up to get bets, with startP starting points
@@ -104,19 +108,19 @@ full.exp <- foreach(p = 1:nPP, .combine=rbind) %do% {
                  ][!is.na(mod.trRew),mod.totRew := cumsum(mod.trRew)]                                                                       # Add up all losses and wins
   
   # Define optimal strategy
-  full.exp[v!=goal, opt.choice := if(trtype == 'deep'){
-    if(stepsleft > policyBet(v, goal, goal.c, idmap.g,bt.map,c.map,idmap.d,idmap.bg,stopIdx.d)){
+  full.exp[!is.na(sym.id),opt.choice:=if(trtype=='deep'){
+    if(stepsleft > stopIdx.d[vertex%in%idmap.d[[sym.id]]]$V1){
       1
     }else{
       -1
     }
   }else{
-    if(stepsleft > policyBet(v, goal, goal.c, idmap.g,bt.map,c.map,idmap.d,idmap.bg,stopIdx.b)){
+    if(stepsleft > stopIdx.b[vertex%in%idmap.bg[[sym.id]]]$V1){
       1
     }else{
       -1
     }
-  }, by = .(tr,stepsleft)
+  }, by=.(pp,tr,stepsleft)
   ][,opt.trBet := na.locf(bet.sum(opt.choice, startP)),by=tr      # Add up to get bets, with startP starting points
     ][stepsleft == 0, opt.trRew := -opt.trBet, by=tr              # Determine losing bets
       ][v==goal, opt.trRew := winM*opt.trBet, by=tr               # Determine winning bets
@@ -149,23 +153,59 @@ ggplot(full.exp[!is.na(nv), .N, .(v,nv,pp)]) +
   geom_line(aes(x=interaction(v,nv), y=N, group=pp, col=pp))
 
 ## Simulate probit regressions on normative choices with set noise level ----
-noiseL <- 0.2 # proportion of non-normative choices
+# Get policy used for separation in analysis
+full.exp[,pol.type:=if(trtype=='deep'){'deep'}else{'bottleneck'},by=.(pp,tr,stepsleft)]
+
+noiseL <- 0.1 # proportion of non-normative choices
 
 # Get non-normative choices
 full.exp[!is.na(opt.choice), c('mod.choice.e','opt.choice.e'):=list(sample(c(mod.choice,-mod.choice),size=1,prob=c(1-noiseL,noiseL)),
                                                                     sample(c(opt.choice,-opt.choice),size=1,prob=c(1-noiseL,noiseL))
                                                                 ), by=.(pp,tr,stepsleft)]
 
-# stan?
+stepProp <- full.exp[!is.na(sym.id) & pp%in%1:500, .SD[opt.choice.e==1,.N]/.N, by=.(pp,pol.type,sym.id,stepsleft)]
+stepDat <- stepProp[,mean(V1), by=.(pol.type,sym.id,stepsleft)]
+stepDat$sdC <- stepProp[,sd(V1), by=.(pol.type,sym.id,stepsleft)]$V1
+
+ggplot(stepDat, aes(x=stepsleft, y=V1, group=sym.id, col=sym.id))+
+  geom_line() +
+  geom_point() +
+  geom_errorbar(aes(ymin=V1-sdC, ymax=V1+sdC)) +
+  facet_grid(pol.type~sym.id)
+
+agProp <- full.exp[!is.na(sym.id), .SD[opt.choice.e==1,.N]/.N, by=.(pp,pol.type,sym.id)]
+
+ggplot(agProp, aes(x=sym.id, y=V1, fill=pol.type)) +
+  geom_bar(stat='identity', position=position_dodge())
 
 
 
+# Get full.exp data into stan-appropriate data
+full.exp[,stan.opt.choice:=opt.choice.e][opt.choice.e==-1, stan.opt.choice:=0]
+x <- full.exp[,reg.id:=interaction(pol.type,sym.id)][!is.na(reg.id) & pp%in%1:500,reg.id]
+x <- droplevels(x)
+x.d <- fastDummies::dummy_cols(x)
 
+standata_list <- list(
+  P = 500,
+  N = nrow(full.exp[pp%in%1:500 & !is.na(opt.choice.e)]),
+  K = length(levels(x)),
+  y = full.exp[pp%in%1:500 & !is.na(opt.choice.e), stan.opt.choice],
+  x = x.d[,2:19],
+  pn = full.exp[pp%in%1:500 & !is.na(opt.choice.e),pp],
+  sl = full.exp[pp%in%1:500 & !is.na(opt.choice.e),stepsleft]
+)
 
-
-
-
-
-
+fit1 <- stan(
+  file = "src/sim1test.stan",
+  data = standata_list,
+  chains = 4,
+  warmup = 1000,
+  iter = 2000,
+  cores = 2,
+  verbose = T
+)
+posterior <- as.matrix(fit1)
+mcmc_areas(posterior, pars='mu[4]',prob=0.8)
 
 
