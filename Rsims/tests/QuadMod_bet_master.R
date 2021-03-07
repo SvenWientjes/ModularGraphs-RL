@@ -173,7 +173,7 @@ ggplot(stepDat, aes(x=stepsleft, y=V1, group=sym.id, col=sym.id))+
   geom_errorbar(aes(ymin=V1-sdC, ymax=V1+sdC)) +
   facet_grid(pol.type~sym.id)
 
-agProp <- full.exp[!is.na(sym.id), .SD[opt.choice.e==1,.N]/.N, by=.(pp,pol.type,sym.id)]
+agProp <- full.exp[!is.na(sym.id), .SD[stan.opt.choice==1,.N]/.N, by=.(pp,pol.type,sym.id)]
 
 ggplot(agProp, aes(x=sym.id, y=V1, fill=pol.type)) +
   geom_bar(stat='identity', position=position_dodge())
@@ -199,13 +199,65 @@ standata_list <- list(
 fit1 <- stan(
   file = "src/sim1test.stan",
   data = standata_list,
+  chains = 2,
+  warmup = 10,
+  iter = 20,
+  cores = 2,
+  verbose = T
+)
+posterior <- as.matrix(fit1)
+mcmc_areas(posterior, pars='pi[1]',prob=0.8)
+
+## Model that will have indexing variables for proportions and direct binomial distribution fit in Stan ----
+full.exp[,pol.type:=if(trtype=='deep'){'deep'}else{'bottleneck'},by=.(pp,tr,stepsleft)]
+
+noiseL <- 0.4 # proportion of non-normative choices
+
+# Get non-normative choices
+full.exp[!is.na(opt.choice), c('mod.choice.e','opt.choice.e'):=list(sample(c(mod.choice,-mod.choice),size=1,prob=c(1-noiseL,noiseL)),
+                                                                    sample(c(opt.choice,-opt.choice),size=1,prob=c(1-noiseL,noiseL))
+), by=.(pp,tr,stepsleft)]
+
+# Get binary variables for Stan
+full.exp[,stan.opt.choice:=opt.choice.e][opt.choice.e==-1, stan.opt.choice:=0]
+
+# Get index variable for regression
+full.exp[,reg.id:=interaction(pol.type,sym.id,stepsleft)]
+full.exp$reg.id <- droplevels(full.exp$reg.id)
+
+# Get into stan-appropriate data table
+Stan.dat <- full.exp[!is.na(stan.opt.choice) & pp%in%1:100, list(bet = .SD[stan.opt.choice==1,.N], N = .N), by=.(pp,reg.id)
+         ][,list(pp, bet, N, reg.id.code=match(reg.id,levels(reg.id)))]
+
+standata_list <- list(
+  K = max(Stan.dat$reg.id.code),
+  M = nrow(Stan.dat),
+  N = Stan.dat$N,
+  B = Stan.dat$bet,
+  Vx = Stan.dat$reg.id.code
+)
+
+fit1 <- stan(
+  file = "src/sim1test2.stan",
+  data = standata_list,
   chains = 4,
   warmup = 1000,
   iter = 2000,
   cores = 2,
   verbose = T
 )
-posterior <- as.matrix(fit1)
-mcmc_areas(posterior, pars='mu[4]',prob=0.8)
+# Get summary to play around with data
+fit1.a <- summary(fit1)$summary
 
+# Get into data.table for plotting
+plotdat.fit1 <- data.table(reg.id=levels(full.exp$reg.id), meanT=fit1.a[-nrow(fit1.a),1], lowT=fit1.a[-nrow(fit1.a),4], highT=fit1.a[-nrow(fit1.a),8])
+plotdat.fit1[,c('pol.type', 'sym.id', 'stepsleft'):=as.list(unlist(strsplit(reg.id, '[.]'))), by=.(reg.id)]
+plotdat.fit1$stepsleft <- as.integer(plotdat.fit1$stepsleft)
+
+# Make plot!
+ggplot(plotdat.fit1, aes(x=stepsleft, y=meanT, group=sym.id, col=sym.id))+
+  geom_line() +
+  geom_point() +
+  geom_errorbar(aes(ymin=lowT, ymax=highT)) +
+  facet_grid(pol.type~sym.id)
 
