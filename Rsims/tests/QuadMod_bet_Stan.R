@@ -8,6 +8,7 @@ library(data.table)
 library(zoo)
 library(rstan)
 library(bayesplot)
+library(bayestestR)
 
 # Load Functions from /src/
 load('data/QuadMod-Bet_testDat-1.RData')
@@ -116,10 +117,11 @@ ggplot(fit1plotdat, aes(x=stepsleft, y=meanT, group=sym.id, col=sym.id))+
   facet_grid(pol.type~sym.id)
 
 which(levels(bern.exp$reg.id)=='deep.c.3')
-post.samps <- as.matrix(fit1)
+which(levels(bern.exp$reg.id)=='deep.d.3')
+plot(density(post.samps[,which(levels(bern.exp$reg.id)=='deep.d.3')] - post.samps[,which(levels(bern.exp$reg.id)=='deep.c.3')]))
 post.samps[,which(colnames(post.samps == paste('beta[', which(levels(bern.exp$reg.id)=='deep.c.3'), ']', sep='')))]
 
 
-
+mcmc_areas(post.samps, pars=c('beta[60]','beta[62]'), prob=0.8)
 
 
