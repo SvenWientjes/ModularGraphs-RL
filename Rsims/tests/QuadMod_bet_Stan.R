@@ -8,6 +8,7 @@ library(data.table)
 library(zoo)
 library(rstan)
 library(bayesplot)
+library(stringr)
 library(bayestestR)
 
 # Load Functions from /src/
@@ -123,5 +124,254 @@ post.samps[,which(colnames(post.samps == paste('beta[', which(levels(bern.exp$re
 
 
 mcmc_areas(post.samps, pars=c('beta[60]','beta[62]'), prob=0.8)
+
+## Model that gets linear regressions on stepsleft with intercept 0step ----
+noiseL <- 0.1
+
+stepreg.exp <- full.exp[pp%in%1:100 & !is.na(opt.choice),list(sym.id,
+                                                           pol.type=if(trtype=='deep'){'deep'}else{'bottleneck'},
+                                                           stan.opt.choice=sample(c(opt.choice, -opt.choice), prob=c(1-noiseL, noiseL), size=1)),by=.(pp,tr,stepsleft)
+                     ][stan.opt.choice==-1, stan.opt.choice:=0
+                       ][,list(pp,tr,stepsleft,stan.opt.choice, reg.id=interaction(pol.type,sym.id))
+                         ][,reg.id:=droplevels(reg.id)
+                           ][,list(pp,tr,stepsleft,stan.opt.choice,reg.id,reg.code=match(reg.id,levels(reg.id)))]
+
+standata_list <- list(
+  P  = max(stepreg.exp$pp),
+  K  = max(stepreg.exp$reg.code),
+  M  = nrow(stepreg.exp),
+  S  = length(unique(stepreg.exp$stepsleft)),
+  Vx = stepreg.exp$reg.code,
+  y  = stepreg.exp$stan.opt.choice,
+  Pn = stepreg.exp$pp,
+  Sl = stepreg.exp$stepsleft
+)
+
+fit1 <- stan(
+  file = "src/Stan/sim1test6.stan",
+  data = standata_list,
+  chains = 4,
+  warmup = 1000,
+  iter = 2000,
+  cores = 2,
+  verbose = T
+)
+
+fit1summary <- summary(fit1)$summary
+
+# Get data into plottable probability table
+probplot.dat <- as.data.table(keep.rownames=T, fit1summary[as.numeric(which(sapply(rownames(fit1summary), function(s){grepl('theta',s,fixed=T)}))),])
+probplot.dat[,c('reg.code','stepsleft'):=as.list(unlist(strsplit(str_sub(sub("^[^[]*", "", rn),2,-2), '[,]'))),by=rn
+             ][,stepsleft:=as.integer(stepsleft)-1
+               ][,c('pol.type','sym.id'):=as.list(unlist(strsplit(levels(stepreg.exp$reg.id)[as.integer(reg.code)], '[.]'))), by=rn]
+# Plot probs
+ggplot(probplot.dat, aes(x=stepsleft, y=mean, group=sym.id, col=sym.id))+
+  geom_line() +
+  geom_point() +
+  geom_errorbar(aes(ymin=probplot.dat$'2.5%', ymax=probplot.dat$'97.5%', group=sym.id, x=stepsleft)) +
+  facet_grid(pol.type~sym.id)
+
+# Repeat for log-odd space
+# Get data into plottable probability table
+probplot.dat <- as.data.table(keep.rownames=T, fit1summary[as.numeric(which(sapply(rownames(fit1summary), function(s){grepl('oddreg',s,fixed=T)}))),])
+probplot.dat[,c('reg.code','stepsleft'):=as.list(unlist(strsplit(str_sub(sub("^[^[]*", "", rn),2,-2), '[,]'))),by=rn
+             ][,stepsleft:=as.integer(stepsleft)-1
+               ][,c('pol.type','sym.id'):=as.list(unlist(strsplit(levels(stepreg.exp$reg.id)[as.integer(reg.code)], '[.]'))), by=rn]
+# Plot probs
+ggplot(probplot.dat, aes(x=stepsleft, y=mean, group=sym.id, col=sym.id))+
+  geom_line() +
+  geom_point() +
+  geom_errorbar(aes(ymin=probplot.dat$'2.5%', ymax=probplot.dat$'97.5%', group=sym.id, x=stepsleft)) +
+  facet_grid(pol.type~sym.id)
+
+# Extract posteriors for all parameters
+draw.posterior <- as.matrix(fit1)
+
+# Compare specific nodes by stepsleft
+deep.bn.compare <- foreach(sl = 1:15, .combine=cbind) %do% {
+  draw.posterior[,which(colnames(draw.posterior) == paste('oddreg[', which(levels(stepreg.exp$reg.id)=='bottleneck.d'), ',', sl, ']', sep=''))] - 
+    draw.posterior[,which(colnames(draw.posterior) == paste('oddreg[', which(levels(stepreg.exp$reg.id)=='bottleneck.c'), ',', sl, ']', sep=''))]
+}
+
+# Extract HDIs
+ggplot(data=data.table(stepsleft = 1:15,
+           MAP  = as.numeric(sapply(1:15, function(s){point_estimate(deep.bn.compare[,s], centrality='MAP')})), 
+           Cmin = as.numeric(sapply(1:15, function(s){hdi(deep.bn.compare[,s])$CI_low})),
+           Cmax = as.numeric(sapply(1:15, function(s){hdi(deep.bn.compare[,s])$CI_high})))) +
+  geom_line(aes(x=stepsleft, y=MAP)) +
+  geom_point(aes(x=stepsleft, y=MAP)) +
+  geom_errorbar(aes(ymin=Cmin, ymax=Cmax, x=stepsleft)) +
+  geom_hline(yintercept=0, col='red') +
+  ggtitle('Bottlegoal comparison with identical policy', 'MAP with 89% HDI')
+
+## Model that gets linear regressions with free intercept ----
+noiseL <- 0.1
+
+stepreg.exp <- full.exp[pp%in%1:100 & !is.na(opt.choice),list(sym.id,
+                                                              pol.type=if(trtype=='deep'){'deep'}else{'bottleneck'},
+                                                              stan.opt.choice=sample(c(opt.choice, -opt.choice), prob=c(1-noiseL, noiseL), size=1)),by=.(pp,tr,stepsleft)
+                        ][stan.opt.choice==-1, stan.opt.choice:=0
+                          ][,list(pp,tr,stepsleft,stan.opt.choice, reg.id=interaction(pol.type,sym.id))
+                            ][,reg.id:=droplevels(reg.id)
+                              ][,list(pp,tr,stepsleft,stan.opt.choice,reg.id,reg.code=match(reg.id,levels(reg.id)))
+                                ][,stepsleft:=stepsleft+1]
+
+standata_list <- list(
+  P  = max(stepreg.exp$pp),
+  K  = max(stepreg.exp$reg.code),
+  M  = nrow(stepreg.exp),
+  S  = length(unique(stepreg.exp$stepsleft)),
+  Vx = stepreg.exp$reg.code,
+  y  = stepreg.exp$stan.opt.choice,
+  Pn = stepreg.exp$pp,
+  Sl = stepreg.exp$stepsleft
+)
+
+fit1 <- stan(
+  file = "src/Stan/sim1test7.stan",
+  data = standata_list,
+  chains = 4,
+  warmup = 1500,
+  iter = 3000,
+  cores = 2,
+  verbose = T
+)
+
+fit1summary <- summary(fit1)$summary
+
+# Get data into plottable probability table
+probplot.dat <- as.data.table(keep.rownames=T, fit1summary[as.numeric(which(sapply(rownames(fit1summary), function(s){grepl('theta',s,fixed=T)}))),])
+probplot.dat[,c('reg.code','stepsleft'):=as.list(unlist(strsplit(str_sub(sub("^[^[]*", "", rn),2,-2), '[,]'))),by=rn
+             ][,stepsleft:=as.integer(stepsleft)-1
+               ][,c('pol.type','sym.id'):=as.list(unlist(strsplit(levels(stepreg.exp$reg.id)[as.integer(reg.code)], '[.]'))), by=rn]
+# Plot probs
+ggplot(probplot.dat, aes(x=stepsleft, y=mean, group=sym.id, col=sym.id))+
+  geom_line() +
+  geom_point() +
+  geom_errorbar(aes(ymin=probplot.dat$'2.5%', ymax=probplot.dat$'97.5%', group=sym.id, x=stepsleft)) +
+  facet_grid(pol.type~sym.id)
+
+## Model that uses splines to estimate ----
+noiseL <- 0.1
+
+splinereg.exp <- full.exp[pp%in%1:10 & !is.na(opt.choice),list(sym.id,
+                                                              pol.type=if(trtype=='deep'){'deep'}else{'bottleneck'},
+                                                              stan.opt.choice=sample(c(opt.choice, -opt.choice), prob=c(1-noiseL, noiseL), size=1)),by=.(pp,tr,stepsleft)
+                        ][stan.opt.choice==-1, stan.opt.choice:=0
+                          ][,list(pp,tr,stepsleft,stan.opt.choice, reg.id=interaction(pol.type,sym.id))
+                            ][,reg.id:=droplevels(reg.id)
+                              ][,list(pp,tr,stepsleft,stan.opt.choice,reg.id,reg.code=match(reg.id,levels(reg.id)))
+                                ][,stepsleft:=stepsleft+1]
+num_knots <- 4
+spline_degree <- 3
+knots <- unname(quantile(splinereg.exp$stepsleft,probs=seq(from=0, to=1, length.out = num_knots)))
+
+splinedat <- list(
+  P  = max(splinereg.exp$pp),
+  K  = max(splinereg.exp$reg.code),
+  M  = nrow(splinereg.exp),
+  S  = length(unique(splinereg.exp$stepsleft)),
+  Vx = splinereg.exp$reg.code,
+  y  = splinereg.exp$stan.opt.choice,
+  Pn = splinereg.exp$pp,
+  Sl = splinereg.exp$stepsleft,
+  num_knots = num_knots,
+  knots = knots,
+  spline_degree = spline_degree
+)
+
+splinefit <- stan(
+  file = "src/Stan/spline1test1.stan",
+  data = splinedat,
+  chains = 4,
+  warmup = 1000,
+  iter = 2000,
+  cores = 4,
+  verbose = T
+)
+
+splinesum <- as.data.table(summary(splinefit)$summary, keep.rownames = T)[grepl('Y_hat',rn, fixed=T),]
+
+splineplot.dat <- data.table(pol.type='a', sym.id='a', stepsleft=0, mean=0, minC=0, maxC=0)
+for(id in levels(splinereg.exp$reg.id)){
+  for(s in unique(splinereg.exp$stepsleft)){
+    splineplot.dat <- rbind(splineplot.dat, data.table(pol.type=strsplit(id, '[.]')[[1]][1], sym.id=strsplit(id, '[.]')[[1]][2], stepsleft=s, mean=splinesum[which(splinereg.exp$reg.id==id & splinereg.exp$stepsleft==s)[1],]$mean, 
+                                                       minC=splinesum[which(splinereg.exp$reg.id==id & splinereg.exp$stepsleft==s)[1],]$'2.5%', maxC=splinesum[which(splinereg.exp$reg.id==id & splinereg.exp$stepsleft==s)[1],]$'97.5%'))
+  }
+}
+splineplot.dat <- splineplot.dat[-1,]
+splineplot.dat[,c('mean','minC','maxC'):=list(boot::inv.logit(mean), boot::inv.logit(minC), boot::inv.logit(maxC)), by=.(pol.type,sym.id,stepsleft)]
+
+ggplot(splineplot.dat, aes(x=stepsleft, y=mean, group=sym.id, col=sym.id))+
+  geom_line() +
+  geom_point() +
+  geom_errorbar(aes(ymin=minC, ymax=maxC, group=sym.id, x=stepsleft)) +
+  facet_grid(pol.type~sym.id)
+
+
+## Model with participant level spline regressors ----
+noiseL <- 0.1
+
+splinereg.exp <- full.exp[pp%in%1:10 & !is.na(opt.choice),list(sym.id,
+                                                               pol.type=if(trtype=='deep'){'deep'}else{'bottleneck'},
+                                                               stan.opt.choice=sample(c(opt.choice, -opt.choice), prob=c(1-noiseL, noiseL), size=1)),by=.(pp,tr,stepsleft)
+                          ][stan.opt.choice==-1, stan.opt.choice:=0
+                            ][,list(pp,tr,stepsleft,stan.opt.choice, reg.id=interaction(pol.type,sym.id))
+                              ][,reg.id:=droplevels(reg.id)
+                                ][,list(pp,tr,stepsleft,stan.opt.choice,reg.id,reg.code=match(reg.id,levels(reg.id)))
+                                  ][,stepsleft:=stepsleft+1]
+num_knots <- 4
+spline_degree <- 3
+knots <- unname(quantile(splinereg.exp$stepsleft,probs=seq(from=0, to=1, length.out = num_knots)))
+
+splinedat <- list(
+  P  = max(splinereg.exp$pp),
+  K  = max(splinereg.exp$reg.code),
+  M  = nrow(splinereg.exp),
+  S  = length(unique(splinereg.exp$stepsleft)),
+  Vx = splinereg.exp$reg.code,
+  y  = splinereg.exp$stan.opt.choice,
+  Pn = splinereg.exp$pp,
+  Sl = splinereg.exp$stepsleft,
+  num_knots = num_knots,
+  knots = knots,
+  spline_degree = spline_degree
+)
+
+splinefit2 <- stan(
+  file = "src/Stan/spline1test2.stan",
+  data = splinedat,
+  chains = 4,
+  warmup = 1000,
+  iter = 2000,
+  cores = 4,
+  verbose = T
+)
+
+splinesum2 <- as.data.table(summary(splinefit2)$summary, keep.rownames = T)[grepl('Y_hat',rn, fixed=T),]
+
+splineplot.dat2 <- data.table(pp=0, pol.type='a', sym.id='a', stepsleft=0, mean=0, minC=0, maxC=0)
+for(p in 1:10){
+  for(id in levels(splinereg.exp$reg.id)){
+    for(s in unique(splinereg.exp$stepsleft)){
+      splineplot.dat2 <- rbind(splineplot.dat2, data.table(pp=p, pol.type=strsplit(id, '[.]')[[1]][1], sym.id=strsplit(id, '[.]')[[1]][2], stepsleft=s, mean=splinesum2[which(splinereg.exp$pp==p & splinereg.exp$reg.id==id & splinereg.exp$stepsleft==s)[1],]$mean, 
+                                                         minC=splinesum2[which(splinereg.exp$pp==p & splinereg.exp$reg.id==id & splinereg.exp$stepsleft==s)[1],]$'2.5%', maxC=splinesum2[which(splinereg.exp$pp==p & splinereg.exp$reg.id==id & splinereg.exp$stepsleft==s)[1],]$'97.5%'))
+    }
+  }
+}
+
+splineplot.dat2 <- splineplot.dat2[-1,]
+splineplot.dat2[,c('mean','minC','maxC'):=list(boot::inv.logit(mean), boot::inv.logit(minC), boot::inv.logit(maxC)), by=.(pp,pol.type,sym.id,stepsleft)
+                ][,pp:=as.factor(pp)]
+
+ggplot(splineplot.dat2, aes(x=stepsleft, y=mean, group=sym.id, col=pp))+
+  geom_line() +
+  geom_point() +
+  geom_errorbar(aes(ymin=minC, ymax=maxC, group=sym.id, x=stepsleft)) +
+  facet_grid(pol.type~sym.id)
+
+bridge_sampler(splinefit2)
+
+bridge_sampler(splinefit)
 
 
