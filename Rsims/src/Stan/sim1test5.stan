@@ -23,6 +23,7 @@ transformed parameters{
   theta = inv_logit(beta);
 }
 model{
+  target += normal_lpdf(sigma|0,1) - normal_lcdf(0|0,1); // Half normal prior on Sigma
   for(k in 1:K){
     beta[k] ~ normal(0, 10);
   }

@@ -375,7 +375,7 @@ bridge_sampler(splinefit2)
 
 bridge_sampler(splinefit)
 
-## One dataset, three models - Free, Linear, Spline ----
+## One dataset, three hierarchical models - Free, Linear, Spline ----
 noiseL <- 0.1
 
 comp.exp <- full.exp[pp%in%1:10 & !is.na(opt.choice),list(sym.id,
@@ -391,7 +391,7 @@ num_knots <- 4
 spline_degree <- 3
 knots <- unname(quantile(comp.exp$stepsleft,probs=seq(from=0, to=1, length.out = num_knots)))
 
-standata_list <- list(
+freedata_list <- list(
   P  = max(comp.exp$pp),
   K  = max(comp.exp$free.code),
   M  = nrow(comp.exp),
@@ -402,13 +402,14 @@ standata_list <- list(
 
 freefit <- stan(
   file = "src/Stan/sim1test5.stan",
-  data = standata_list,
-  chains = 4,
-  warmup = 1200,
-  iter = 3000,
-  cores = 4,
+  data = freedata_list,
+  chains = 6,
+  warmup = 1500,
+  iter = 5000,
+  cores = 6,
   verbose = T,
-  save_warmup=F
+  save_warmup=F,
+  control=list(max_treedepth=15)
 )
 
 lindata_list <- list(
