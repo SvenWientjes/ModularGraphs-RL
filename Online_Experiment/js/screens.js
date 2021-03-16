@@ -12,19 +12,11 @@ var goalsdef = ['img/Balloon_goal.png', 'img/Basket_goal.png', 'img/Book_goal.pn
 
 // Defines the strings to pass through blockend.
 function miniblockFb(mbend){
-    if(mbend=='early'){
-        return '<p>You ended the miniblock early.</p>'+
-        '<p>You might have saved some losses!</p>'
-    };
-    if(mbend=='getgoal'){
-        return '<p>Good job! You have reached the goal.</p>'+
+    if(mbend=='downgoal'||mbend=='upgoal'){
+        return '<p>Congratulations! You have reached the goal.</p>'+
         '<p>You have been awarded the corresponding points</p>'
     };
-    if(mbend=='missgoal'){
-        return '<p>You missed the goal!</p>'+
-        '<p>You could have had a bonus, pay close attention!</p>'
-    };
-    if(mbend=='nogoal'){
+    if(mbend=='downend'||mbend=='upend'){
         return '<p>There was no goal in this miniblock.</p>'+
         '<p>Better luck next time! Maybe you could have prevented some losses.</p>'
     }
