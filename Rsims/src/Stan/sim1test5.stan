@@ -18,6 +18,10 @@ parameters{
   row_vector[K] param[P];
   real<lower=0> sigma;
 }
+transformed parameters{
+  real theta[K];
+  theta = inv_logit(beta);
+}
 model{
   for(k in 1:K){
     beta[k] ~ normal(0, 10);
@@ -29,11 +33,5 @@ model{
   }
   for(n in 1:M){
     y[n] ~ bernoulli_logit(param[Pn[n],Vx[n]]);
-  }
-}
-generated quantities{
-  real theta[K];
-  for(k in 1:K){
-    theta[k] = inv_logit(beta[k]);
   }
 }

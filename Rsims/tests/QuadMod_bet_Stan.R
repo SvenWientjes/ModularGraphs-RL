@@ -10,6 +10,7 @@ library(rstan)
 library(bayesplot)
 library(stringr)
 library(bayestestR)
+library(bridgesampling)
 
 # Load Functions from /src/
 load('data/QuadMod-Bet_testDat-1.RData')
@@ -69,7 +70,7 @@ fit1 <- stan(
 ## Model that will fit similar values as Binomial but uses Bernoulli - check for speedup ----
 noiseL <- 0.1
 
-bern.exp <- full.exp[pp%in%1:100 & !is.na(opt.choice),list(sym.id,
+bern.exp <- full.exp[pp%in%1:10 & !is.na(opt.choice),list(sym.id,
                            pol.type=if(trtype=='deep'){'deep'}else{'bottleneck'},
                            stan.opt.choice=sample(c(opt.choice, -opt.choice), prob=c(1-noiseL, noiseL), size=1)),by=.(pp,tr,stepsleft)
          ][stan.opt.choice==-1, stan.opt.choice:=0
@@ -374,4 +375,86 @@ bridge_sampler(splinefit2)
 
 bridge_sampler(splinefit)
 
+## One dataset, three models - Free, Linear, Spline ----
+noiseL <- 0.1
 
+comp.exp <- full.exp[pp%in%1:10 & !is.na(opt.choice),list(sym.id,
+                                                               pol.type=if(trtype=='deep'){'deep'}else{'bottleneck'},
+                                                               stan.opt.choice=sample(c(opt.choice, -opt.choice), prob=c(1-noiseL, noiseL), size=1)),by=.(pp,tr,stepsleft)
+                          ][stan.opt.choice==-1, stan.opt.choice:=0
+                            ][,list(pp,tr,stepsleft,stan.opt.choice, reg.id=interaction(pol.type,sym.id), free.id=interaction(pol.type,sym.id,stepsleft))
+                              ][,reg.id:=droplevels(reg.id)
+                                ][,list(pp,tr,stepsleft,stan.opt.choice,reg.id,free.id,reg.code=match(reg.id,levels(reg.id)),free.code=match(free.id,levels(free.id)))
+                                  ][,stepsleft:=stepsleft+1]
+
+num_knots <- 4
+spline_degree <- 3
+knots <- unname(quantile(comp.exp$stepsleft,probs=seq(from=0, to=1, length.out = num_knots)))
+
+standata_list <- list(
+  P  = max(comp.exp$pp),
+  K  = max(comp.exp$free.code),
+  M  = nrow(comp.exp),
+  Vx = comp.exp$free.code,
+  y  = comp.exp$stan.opt.choice,
+  Pn = comp.exp$pp
+)
+
+freefit <- stan(
+  file = "src/Stan/sim1test5.stan",
+  data = standata_list,
+  chains = 4,
+  warmup = 1200,
+  iter = 3000,
+  cores = 4,
+  verbose = T,
+  save_warmup=F
+)
+
+lindata_list <- list(
+  P  = max(comp.exp$pp),
+  K  = max(comp.exp$reg.code),
+  M  = nrow(comp.exp),
+  S  = length(unique(comp.exp$stepsleft)),
+  Vx = comp.exp$reg.code,
+  y  = comp.exp$stan.opt.choice,
+  Pn = comp.exp$pp,
+  Sl = comp.exp$stepsleft
+)
+
+linfit <- stan(
+  file = "src/Stan/sim1test7.stan",
+  data = lindata_list,
+  chains = 4,
+  warmup = 1500,
+  iter = 3000,
+  cores = 4,
+  verbose = T,
+  save_warmup=F
+)
+
+splinedata_list <- list(
+  P  = max(comp.exp$pp),
+  K  = max(comp.exp$reg.code),
+  M  = nrow(comp.exp),
+  S  = length(unique(comp.exp$stepsleft)),
+  Vx = comp.exp$reg.code,
+  y  = comp.exp$stan.opt.choice,
+  Pn = comp.exp$pp,
+  Sl = comp.exp$stepsleft,
+  num_knots = num_knots,
+  knots = knots,
+  spline_degree = spline_degree
+)
+
+splinefit <- stan(
+  file = "src/Stan/spline1test2.stan",
+  data = splinedata_list,
+  chains = 4,
+  warmup = 1500,
+  iter = 3000,
+  cores = 4,
+  verbose = T,
+  save_warmup=F,
+  control=list(max_treedepth=15)
+)
