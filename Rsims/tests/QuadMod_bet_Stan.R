@@ -378,12 +378,12 @@ bridge_sampler(splinefit)
 ## One dataset, three hierarchical models - Free, Linear, Spline ----
 noiseL <- 0.1
 
-comp.exp <- full.exp[pp%in%1:10 & !is.na(opt.choice),list(sym.id,
+comp.exp <- full.exp[pp%in%1:2 & !is.na(opt.choice),list(sym.id,
                                                                pol.type=if(trtype=='deep'){'deep'}else{'bottleneck'},
                                                                stan.opt.choice=sample(c(opt.choice, -opt.choice), prob=c(1-noiseL, noiseL), size=1)),by=.(pp,tr,stepsleft)
                           ][stan.opt.choice==-1, stan.opt.choice:=0
                             ][,list(pp,tr,stepsleft,stan.opt.choice, reg.id=interaction(pol.type,sym.id), free.id=interaction(pol.type,sym.id,stepsleft))
-                              ][,reg.id:=droplevels(reg.id)
+                              ][,c('reg.id','free.id'):=list(droplevels(reg.id), droplevels(free.id))
                                 ][,list(pp,tr,stepsleft,stan.opt.choice,reg.id,free.id,reg.code=match(reg.id,levels(reg.id)),free.code=match(free.id,levels(free.id)))
                                   ][,stepsleft:=stepsleft+1]
 
@@ -403,13 +403,12 @@ freedata_list <- list(
 freefit <- stan(
   file = "src/Stan/sim1test5.stan",
   data = freedata_list,
-  chains = 6,
+  chains = 4,
   warmup = 1500,
   iter = 5000,
-  cores = 6,
+  cores = 4,
   verbose = T,
-  save_warmup=F,
-  control=list(max_treedepth=15)
+  save_warmup=F
 )
 
 lindata_list <- list(
@@ -428,7 +427,7 @@ linfit <- stan(
   data = lindata_list,
   chains = 4,
   warmup = 1500,
-  iter = 3000,
+  iter = 5000,
   cores = 4,
   verbose = T,
   save_warmup=F
@@ -456,6 +455,5 @@ splinefit <- stan(
   iter = 3000,
   cores = 4,
   verbose = T,
-  save_warmup=F,
-  control=list(max_treedepth=15)
+  save_warmup=F
 )

@@ -65,39 +65,41 @@ transformed data {
   B[num_knots + spline_degree - 1, M] = 1;
 }
 parameters{
-  row_vector[num_basis] a_raw[K];
-  matrix[K, num_basis] a_raw_pp[P];
-  real a0[K];  // intercept
-  vector[K] a0_pp[P];
-  real<lower=0> tau;
-  real<lower=0> sigma_raw;
-  real<lower=0> sigma_0;
+  row_vector[num_basis] a_raw[K];     // Population  level spline coefficients
+  matrix[K, num_basis] z_a_raw_pp[P]; // Participant level spline coefficient standardized deviations
+  real a0[K];                         // Population  level intercept
+  vector[K] z_a0_pp[P];               // Participant level intercept standardized deviations
+  //real<lower=0> tau;                  // ??
+  vector<lower=0>[2] sigma;           // Participant level standardized deviations rescalers
 }
 transformed parameters {
-  matrix[K, num_basis] a[P]; // spline coefficients
-  vector[M] Y_hat;
+  matrix[K, num_basis] a[P]; // Spline coefficients (indexed by pp - incorporates individual diff)
+  vector[M] Y_hat;           // Spline predicted trial logodds
+  vector[M] theta_hat;       // Spline predicted trial probabilities
   for(p in 1:P){
     for(k in 1:K){
-    a[p][k] = a_raw_pp[p][k]*tau;
+        a[p][k] = a_raw[k] + z_a_raw_pp[p][k]*sigma[2];
     }
   }
   for(n in 1:M){
-    Y_hat[n] = a0_pp[Pn[n],Vx[n]]*Sl[n] + a[Pn[n]][Vx[n]]*B[:,n];
+    Y_hat[n] = (a0[Vx[n]] + z_a0_pp[Pn[n],Vx[n]]*sigma[1])*Sl[n] + a[Pn[n]][Vx[n]]*B[:,n];
   }
+  theta_hat = inv_logit(Y_hat);
 }
 model{
   // Priors
+  target += normal_lpdf(sigma|0,1) - 2*normal_lccdf(0|0,1);
   for(k in 1:K){
-    a_raw[k] ~ normal(0,10);
+    a_raw[k] ~ normal(0,10); // Pop regressor
   }
-  a0 ~ normal(0, 10);
-  tau ~ normal(0, 10);
+  a0 ~ normal(0, 10);        // Pop intercept
+  //tau ~ normal(0, 10); // What is the purpose of Tau??
   for(p in 1:P){
-    for(k in 1:K){
-      a_raw_pp[p][k] ~ normal(a_raw[k], sigma_raw);
-      a0_pp[p][k] ~ normal(a0[k], sigma_0);
-    }
+    target += std_normal_lpdf(to_vector(z_a_raw_pp[p]));
+    target += std_normal_lpdf(to_vector(z_a0_pp[p]));
   }
+  
+  
   for(n in 1:M){
     y[n] ~ bernoulli_logit(Y_hat[n]);
   }
