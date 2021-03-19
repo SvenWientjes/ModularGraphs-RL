@@ -14,24 +14,28 @@ data{
   int<lower=1> Pn[M];
 }
 parameters{
-  real beta[K];
-  row_vector[K] param[P];
-  real<lower=0> sigma;
+  real beta[K];             // Population level effects
+  row_vector[K] z_param[P]; // Standardized participant level effects
+  real<lower=0> sigma;      // Rescaler of participant level effects
 }
 transformed parameters{
-  real theta[K];
+  row_vector[K] param[P];   // Proper participant level effects
+  real theta[K];            // Effect rescaled from logodds to prob
+  for(p in 1:P){
+    param[p] = z_param[p] * sigma;
+  }
   theta = inv_logit(beta);
 }
 model{
+  target += normal_lpdf(sigma|0,1) - normal_lccdf(0|0,1);
   for(k in 1:K){
     beta[k] ~ normal(0, 10);
   }
   for(p in 1:P){
-    for(k in 1:K){
-      param[p,k] ~ normal(beta[k], sigma);
-    }
+    target += std_normal_lpdf(to_vector(z_param[p]));
   }
+  
   for(n in 1:M){
-    y[n] ~ bernoulli_logit(param[Pn[n],Vx[n]]);
+    y[n] ~ bernoulli_logit(beta[Vx[n]] + param[Pn[n],Vx[n]]);
   }
 }

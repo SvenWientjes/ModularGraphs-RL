@@ -18,38 +18,37 @@ data{
   int<lower=0> Sl[M];
 }
 parameters{
-  real apop[K];
-  real bpop[K];
+  real apop[K];         // Population level intercept
+  real bpop[K];         // Population level regressor
+  row_vector[K] z_a[P]; // Z-scored individual deviance intercept
+  row_vector[K] z_b[P]; // Z-scored individual deviance regressor
+  vector<lower=0>[2] sigma;   // Rescaler individual deviance 
+}
+transformed parameters{
   row_vector[K] a[P];
   row_vector[K] b[P];
-  
-  real<lower=0> asig;
-  real<lower=0> bsig;
+  vector[M] lohat;
+  vector[M] theta;
+  for(p in 1:P){
+    a[p] = z_a[p]*sigma[1];
+    b[p] = z_b[p]*sigma[2];
+  }
+  for(n in 1:M){
+    lohat[n] = apop[Vx[n]] + a[Pn[n], Vx[n]] + (bpop[Vx[n]] + b[Pn[n], Vx[n]]) * Sl[n];
+  }
+  theta = inv_logit(lohat);
 }
 model{
+  target += normal_lpdf(sigma|0,1) - 2*normal_lccdf(0|0,1);
   for(k in 1:K){
     apop[k] ~ normal(0, 10);
     bpop[k] ~ normal(0, 10);
   }
   for(p in 1:P){
-    for(k in 1:K){
-      a[p,k] ~ normal(apop[k], asig);
-      b[p,k] ~ normal(bpop[k], bsig);
-    }
+    target += std_normal_lpdf(z_a[p]);
+    target += std_normal_lpdf(z_b[p]);
   }
   for(n in 1:M){
-    y[n] ~ bernoulli_logit(a[Pn[n], Vx[n]] + b[Pn[n], Vx[n]] * Sl[n]);
-  }
-}
-generated quantities{
-  // Initialize theta as probability of bet for different node IDs (K) at each stepsleft (S)
-  row_vector[S] theta[K];
-  row_vector[S] oddreg[K];
-  int steps[S] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
-  for(k in 1:K){
-    for(s in 1:S){
-      oddreg[k,s] = apop[k]+bpop[k]*steps[s];
-      theta[k,s] = inv_logit(apop[k]+bpop[k]*steps[s]);
-    }
+    y[n] ~ bernoulli_logit(lohat[n]);
   }
 }
