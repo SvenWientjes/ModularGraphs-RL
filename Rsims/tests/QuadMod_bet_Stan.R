@@ -477,4 +477,94 @@ optfit <- stan(
   verbose = T,
   save_warmup=F
 )
+## Choices based upon EV of current state ----
+
+# Get symmetry and points from hitMats
+EVcMat <- rbind(hitMat.d[,list(vertex,steps,goalprob,cumgoal=cumsum(goalprob)),by=.(vertex)
+                  ][,list(sym.it   = symmetry.get(vertex,8, 'b', idmap.g, bt.map, c.map, idmap.d, idmap.bg),
+                    EVcp     = min(1,cumgoal*5),
+                    pol.it = 'deep'),by=.(vertex,steps,goalprob)],
+                hitMat.b[,list(vertex,steps,goalprob,cumgoal=cumsum(goalprob)),by=.(vertex)
+                  ][,list(sym.it   = symmetry.get(vertex,6, 'b', idmap.g, bt.map, c.map, idmap.d, idmap.bg),
+                    EVcp     = min(1,cumgoal*5),
+                    pol.it = 'bottleneck'),by=.(vertex,steps,goalprob)])
+EVcMat <- rbind(EVcMat,
+                data.table(vertex=unique(EVcMat[pol.it=='deep']$vertex),
+                           steps=0, goalprob=0, sym.it=unique(EVcMat[pol.it=='deep']$sym.it),
+                           pol.it='deep', EVcp=0),
+                data.table(vertex=unique(EVcMat[pol.it=='bottleneck']$vertex),
+                           steps=0, goalprob=0, sym.it=unique(EVcMat[pol.it=='bottleneck']$sym.it),
+                           pol.it='bottleneck', EVcp=0))
+
+EVregMat <- rbind(EVmat.d[,list(sym.it = symmetry.get(vertex, 8, 'b', idmap.g, bt.map, c.map, idmap.d, idmap.bg),
+                    pol.id = 'deep',EV),by=.(vertex,steps)],
+                  EVmat.b[,list(sym.it = symmetry.get(vertex, 6, 'b', idmap.g, bt.map, c.map, idmap.d, idmap.bg),
+                    pol.id = 'bottleneck',EV),by=.(vertex,steps)])
+EVregMat <- rbind(EVregMat,
+                  data.table(vertex=unique(EVregMat[pol.id=='deep']$vertex),
+                             steps=0, sym.it=unique(EVregMat[pol.id=='deep']$sym.it),
+                             pol.id='deep', EV=-1),
+                  data.table(vertex=unique(EVregMat[pol.id=='bottleneck']$vertex),
+                             steps=0, sym.it=unique(EVregMat[pol.id=='bottleneck']$sym.it),
+                             pol.id='bottleneck', EV=-1))
+
+EV.exp <- full.exp[pp %in% 1:50 & !is.na(opt.choice), list(sym.id, opt.choice,
+                                                          pol.type=if(trtype=='deep'){'deep'}else{'bottleneck'})
+                                                          ,by=.(pp,tr,stepsleft)
+                   ][,list(sym.id, pol.type, opt.choice, EV.choice = sample(c(1,0), prob=c(EVcMat[sym.it==sym.id & 
+                                                                 pol.it==pol.type & 
+                                                                 steps==stepsleft]$EVcp,
+                                                        1 - EVcMat[sym.it==sym.id & 
+                                                                     pol.it==pol.type & 
+                                                                     steps==stepsleft]$EVcp),
+                                         size=1)), by=.(pp,tr,stepsleft)
+                     ][opt.choice==-1, opt.choice:=0
+                       ][,list(pp,tr,stepsleft,sym.id,pol.type,opt.choice,EV.choice,reg.id=interaction(pol.type,sym.id), free.id=interaction(pol.type,sym.id,stepsleft))
+                         ][,c('reg.id','free,id'):=list(droplevels(reg.id), droplevels(free.id))
+                           ][,list(pp,tr,stepsleft,sym.id,pol.type,opt.choice,EV.choice,reg.id,free.id,reg.code=match(reg.id,levels(reg.id)),free.code=match(free.id,levels(free.id)))
+                             ][,stepsleft:=stepsleft+1
+                               ][,list(sym.id,pol.type,opt.choice,EV.choice,reg.id,free.id,reg.code,free.code,
+                                       EV.reg = EVregMat[sym.it==sym.id & pol.id==pol.type & steps==(stepsleft-1)]$EV),by=.(pp,tr,stepsleft)
+                                 ]
+
+ggplot(EV.exp[,sum(EV.choice==1)/.N,by=.(sym.id,pol.type,stepsleft)]) +
+  geom_line(aes(x=stepsleft, y=V1, col=sym.id)) +
+  geom_point(aes(x=stepsleft, y=V1, col=sym.id)) +
+  facet_grid(pol.type~sym.id)
+
+ggplot(EV.exp) +
+  geom_line(aes(x=stepsleft, y=EV.reg, col=sym.id)) +
+  geom_point(aes(x=stepsleft, y=EV.reg, col=sym.id)) +
+  facet_grid(pol.type~sym.id)
+
+num_knots <- 4
+spline_degree <- 3
+knots <- unname(quantile(EV.exp$stepsleft,probs=seq(from=0, to=1, length.out = num_knots)))
+
+splinedata_list <- list(
+  P  = max(EV.exp$pp),
+  K  = max(EV.exp$reg.code),
+  M  = nrow(EV.exp),
+  S  = length(unique(EV.exp$stepsleft)),
+  Vx = EV.exp$reg.code,
+  y  = EV.exp$EV.choice,
+  Pn = EV.exp$pp,
+  Sl = EV.exp$stepsleft,
+  num_knots = num_knots,
+  knots = knots,
+  spline_degree = spline_degree
+)
+
+splinefit <- stan(
+  file = "src/Stan/spline1test2.stan",
+  data = splinedata_list,
+  chains = 4,
+  warmup = 1500,
+  iter = 3000,
+  cores = 4,
+  verbose = T,
+  save_warmup=F
+)
+
+
 
