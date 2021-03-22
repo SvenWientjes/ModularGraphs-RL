@@ -504,7 +504,7 @@ EVregMat <- rbind(EVregMat,
                              steps=0, sym.it=unique(EVregMat[pol.id=='bottleneck']$sym.it),
                              pol.id='bottleneck', EV=-1))
 
-EV.exp <- full.exp[pp %in% 1:20 & !is.na(opt.choice), list(sym.id, opt.choice,
+EV.exp <- full.exp[pp %in% 1:5 & !is.na(opt.choice), list(sym.id, opt.choice,
                                                           pol.type=if(trtype=='deep'){'deep'}else{'bottleneck'})
                                                           ,by=.(pp,tr,stepsleft)
                    ][,list(sym.id, pol.type, opt.choice, EV.choice = sample(c(1,0), prob=c(EVcMat[sym.it==sym.id & 
@@ -553,14 +553,15 @@ splinedata_list <- list(
 )
 
 splinefit <- stan(
-  file = "src/Stan/spline1test2.stan",
+  file = "src/Stan/spline1test1.stan",
   data = splinedata_list,
   chains = 4,
   warmup = 1500,
-  iter = 5000,
+  iter = 3000,
   cores = 4,
   verbose = T,
-  save_warmup=F
+  save_warmup=F,
+  pars = c('a_raw', 'a0', 'tau')
 )
 
 # Fit linear model
@@ -585,4 +586,25 @@ linfit <- stan(
   verbose = T,
   save_warmup=F
 )
+
+# Fit EV regression
+EVdata_list <- list(
+  P  = max(EV.exp$pp),
+  M  = nrow(EV.exp),
+  y  = EV.exp$EV.choice,
+  Pn = EV.exp$pp,
+  EV = EV.exp$EV.reg
+)
+
+EVfit <- stan(
+  file = "src/Stan/EV_regress.stan",
+  data = EVdata_list,
+  chains = 4,
+  warmup = 1500,
+  iter = 5000,
+  cores = 4,
+  verbose = T,
+  save_warmup=F
+)
+
 
