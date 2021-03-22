@@ -69,7 +69,7 @@ parameters{
   matrix[K, num_basis] z_a_raw_pp[P]; // Participant level spline coefficient standardized deviations
   real a0[K];                         // Population  level intercept
   vector[K] z_a0_pp[P];               // Participant level intercept standardized deviations
-  //real<lower=0> tau;                  // ??
+  real<lower=0> tau;                  // ??
   vector<lower=0>[2] sigma;           // Participant level standardized deviations rescalers
 }
 transformed parameters {
@@ -93,7 +93,7 @@ model{
     a_raw[k] ~ normal(0,10); // Pop regressor
   }
   a0 ~ normal(0, 10);        // Pop intercept
-  //tau ~ normal(0, 10); // What is the purpose of Tau??
+  tau ~ normal(0, 10); // What is the purpose of Tau??
   for(p in 1:P){
     target += std_normal_lpdf(to_vector(z_a_raw_pp[p]));
     target += std_normal_lpdf(to_vector(z_a0_pp[p]));

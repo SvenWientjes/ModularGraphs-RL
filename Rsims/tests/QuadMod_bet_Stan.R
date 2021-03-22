@@ -1,15 +1,11 @@
 ############################################################################################################################
 ####################### Script for fitting Stan models to different betting datasets QuadMod ###############################
 ############################################################################################################################
-library(foreach)
 library(ggplot2)
-library(reshape2)
 library(data.table)
-library(zoo)
 library(rstan)
 library(bayesplot)
 library(stringr)
-library(bayestestR)
 library(bridgesampling)
 
 # Load Functions from /src/
@@ -508,7 +504,7 @@ EVregMat <- rbind(EVregMat,
                              steps=0, sym.it=unique(EVregMat[pol.id=='bottleneck']$sym.it),
                              pol.id='bottleneck', EV=-1))
 
-EV.exp <- full.exp[pp %in% 1:50 & !is.na(opt.choice), list(sym.id, opt.choice,
+EV.exp <- full.exp[pp %in% 1:5 & !is.na(opt.choice), list(sym.id, opt.choice,
                                                           pol.type=if(trtype=='deep'){'deep'}else{'bottleneck'})
                                                           ,by=.(pp,tr,stepsleft)
                    ][,list(sym.id, pol.type, opt.choice, EV.choice = sample(c(1,0), prob=c(EVcMat[sym.it==sym.id & 
@@ -527,9 +523,9 @@ EV.exp <- full.exp[pp %in% 1:50 & !is.na(opt.choice), list(sym.id, opt.choice,
                                        EV.reg = EVregMat[sym.it==sym.id & pol.id==pol.type & steps==(stepsleft-1)]$EV),by=.(pp,tr,stepsleft)
                                  ]
 
-ggplot(EV.exp[,sum(EV.choice==1)/.N,by=.(sym.id,pol.type,stepsleft)]) +
-  geom_line(aes(x=stepsleft, y=V1, col=sym.id)) +
-  geom_point(aes(x=stepsleft, y=V1, col=sym.id)) +
+ggplot(EV.exp[,sum(EV.choice==1)/.N,by=.(pp,sym.id,pol.type,stepsleft)]) +
+  geom_line(aes(x=stepsleft, y=V1, col=pp)) +
+  geom_point(aes(x=stepsleft, y=V1, col=pp)) +
   facet_grid(pol.type~sym.id)
 
 ggplot(EV.exp) +
@@ -537,6 +533,7 @@ ggplot(EV.exp) +
   geom_point(aes(x=stepsleft, y=EV.reg, col=sym.id)) +
   facet_grid(pol.type~sym.id)
 
+# Fit spline
 num_knots <- 4
 spline_degree <- 3
 knots <- unname(quantile(EV.exp$stepsleft,probs=seq(from=0, to=1, length.out = num_knots)))
@@ -556,15 +553,58 @@ splinedata_list <- list(
 )
 
 splinefit <- stan(
-  file = "src/Stan/spline1test2.stan",
+  file = "src/Stan/spline1test1.stan",
   data = splinedata_list,
   chains = 4,
   warmup = 1500,
   iter = 3000,
   cores = 4,
   verbose = T,
+  save_warmup=F,
+  pars = c('a_raw', 'a0', 'tau')
+)
+
+# Fit linear model
+lindata_list <- list(
+  P  = max(EV.exp$pp),
+  K  = max(EV.exp$reg.code),
+  M  = nrow(EV.exp),
+  S  = length(unique(EV.exp$stepsleft)),
+  Vx = EV.exp$reg.code,
+  y  = EV.exp$EV.choice,
+  Pn = EV.exp$pp,
+  Sl = EV.exp$stepsleft
+)
+
+linfit <- stan(
+  file = "src/Stan/sim1test7.stan",
+  data = lindata_list,
+  chains = 4,
+  warmup = 1500,
+  iter = 5000,
+  cores = 4,
+  verbose = T,
   save_warmup=F
 )
 
+# Fit EV regression
+EVdata_list <- list(
+  P  = max(EV.exp$pp),
+  M  = nrow(EV.exp),
+  y  = EV.exp$EV.choice,
+  Pn = EV.exp$pp,
+  EV = EV.exp$EV.reg
+)
+
+EVfit <- stan(
+  file = "src/Stan/EV_regress.stan",
+  data = EVdata_list,
+  chains = 4,
+  warmup = 1500,
+  iter = 5000,
+  cores = 4,
+  verbose = T,
+  save_warmup=F
+)
 
 
