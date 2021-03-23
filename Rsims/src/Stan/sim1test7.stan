@@ -40,15 +40,15 @@ transformed parameters{
 }
 model{
   target += normal_lpdf(sigma|0,1) - 2*normal_lccdf(0|0,1);
-  for(k in 1:K){
-    apop[k] ~ normal(0, 10);
-    bpop[k] ~ normal(0, 10);
-  }
+  
+  target += normal_lpdf(apop|0,10);
+  target += normal_lpdf(bpop|0,10);
+  
   for(p in 1:P){
     target += std_normal_lpdf(z_a[p]);
     target += std_normal_lpdf(z_b[p]);
   }
   for(n in 1:M){
-    y[n] ~ bernoulli_logit(lohat[n]);
+    target += bernoulli_logit_lpmf(y[n]|lohat[n]);
   }
 }

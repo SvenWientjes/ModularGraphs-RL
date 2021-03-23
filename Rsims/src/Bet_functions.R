@@ -125,4 +125,18 @@ symmetry.get <- function(curV, goalV, goal.c, idmap.g, bt.map, c.map, idmap.d, i
   }
 }
 
+modchoice.get <- function(curV, start.c, goal.c, idmap.g, bt.map, noiseL){
+  if(curV %in% c(bt.map[[start.c]], bt.map[[goal.c]], idmap.g[[start.c]], idmap.g[[goal.c]])){
+    return(sample(c(0,1), prob=c(noiseL, 1-noiseL), size=1))
+  }else if(!(curV %in% c(bt.map[[start.c]], bt.map[[goal.c]], idmap.g[[start.c]], idmap.g[[goal.c]]))){
+    return(sample(c(0,1), prob=c(1-noiseL, noiseL), size=1))
+  }else{
+    stop('Logical condition not fulfilled')
+  }
+}
+
+multichoice.get <- function(pp, ppES, EVR, Sl, modR, noiseL){
+    choiceS <- rbinom(1, 1, prob = boot::inv.logit(ppES[pp,] %*% c(EVR,Sl,modR)))
+    return(sample(c(choiceS,as.integer(!choiceS)), prob=c(1-noiseL, noiseL), size=1))
+}
 
