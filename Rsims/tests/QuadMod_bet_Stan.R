@@ -607,4 +607,211 @@ EVfit <- stan(
   save_warmup=F
 )
 
+optdata_list <- list(
+  P  = max(EV.exp$pp),
+  M  = nrow(EV.exp),
+  y  = EV.exp$EV.choice,
+  Opt = EV.exp$opt.choice,
+  Pn = EV.exp$pp
+)
 
+optfit <- stan(
+  file = "src/Stan/opt_regress.stan",
+  data = optdata_list,
+  chains = 4,
+  warmup = 1500,
+  iter = 3000,
+  cores = 4,
+  verbose = T,
+  save_warmup=F
+)
+
+## Choices based upon cluster identity (start+goal=1) ----
+noiseL <- 0.1
+
+mod.exp <- full.exp[pp %in% 1:5 & !is.na(opt.choice), list(v,start.c, goal.c, sym.id, opt.choice,
+                                                           pol.type=if(trtype=='deep'){'deep'}else{'bottleneck'})
+                    ,by=.(pp,tr,stepsleft)
+                    ][,mod.choice:=modchoice.get(v, start.c, goal.c, idmap.g, bt.map, noiseL), by=.(pp,tr,stepsleft)
+                      ][opt.choice==-1, opt.choice:=0
+                        ][,c('reg.id','free.id'):=list(interaction(pol.type,sym.id), interaction(pol.type,sym.id,stepsleft))
+                          ][,c('reg.id','free.id'):=list(droplevels(reg.id),droplevels(free.id))
+                            ][,c('reg.code', 'free.code', 'stepsleft'):=list(match(reg.id,levels(reg.id)),match(free.id,levels(free.id)),stepsleft+1)
+                              ][,mod.reg:=modchoice.get(v, start.c, goal.c, idmap.g, bt.map, 0), by=.(pp,tr,stepsleft)
+                                ][,EV.reg:=EVregMat[sym.it==sym.id & pol.id==pol.type & steps==(stepsleft-1)]$EV,by=.(pp,tr,stepsleft)]
+
+ggplot(mod.exp[,sum(mod.reg==1)/.N,by=.(pp,sym.id,pol.type,stepsleft)]) +
+  geom_line(aes(x=stepsleft, y=V1, col=pp)) +
+  geom_point(aes(x=stepsleft, y=V1, col=pp)) +
+  facet_grid(pol.type~sym.id)
+                
+# Fit EV regression
+EVdata_list <- list(
+  P  = max(mod.exp$pp),
+  M  = nrow(mod.exp),
+  y  = mod.exp$mod.choice,
+  Pn = mod.exp$pp,
+  EV = mod.exp$EV.reg
+)
+
+EVfit <- stan(
+  file = "src/Stan/EV_regress.stan",
+  data = EVdata_list,
+  chains = 4,
+  warmup = 1500,
+  iter = 5000,
+  cores = 4,
+  verbose = T,
+  save_warmup=F
+)
+
+# Fit mod idx regression
+moddata_list <- list(
+  P  = max(mod.exp$pp),
+  M  = nrow(mod.exp),
+  y  = mod.exp$mod.choice,
+  Pn = mod.exp$pp,
+  EV = mod.exp$mod.reg
+)
+
+modfit <- stan(
+  file = "src/Stan/EV_regress.stan",
+  data = moddata_list,
+  chains = 4,
+  warmup = 1500,
+  iter = 5000,
+  cores = 4,
+  verbose = T,
+  save_warmup=F
+)
+
+# Fit optimal regressor
+optdata_list <- list(
+  P  = max(mod.exp$pp),
+  M  = nrow(mod.exp),
+  y  = mod.exp$mod.choice,
+  Opt = mod.exp$opt.choice,
+  Pn = mod.exp$pp
+)
+
+optfit <- stan(
+  file = "src/Stan/opt_regress.stan",
+  data = optdata_list,
+  chains = 4,
+  warmup = 1500,
+  iter = 5000,
+  cores = 4,
+  verbose = T,
+  save_warmup=F
+)
+
+# Fit stepsleft model
+stepdata_list <- list(
+  P  = max(mod.exp$pp),
+  K  = max(mod.exp$reg.code),
+  M  = nrow(mod.exp),
+  S  = length(unique(mod.exp$stepsleft)),
+  Vx = mod.exp$reg.code,
+  y  = mod.exp$mod.choice,
+  Pn = mod.exp$pp,
+  Sl = mod.exp$stepsleft
+)
+
+linfit <- stan(
+  file = "src/Stan/sim1test7.stan",
+  data = stepdata_list,
+  chains = 4,
+  warmup = 1500,
+  iter = 5000,
+  cores = 4,
+  verbose = T,
+  save_warmup=F
+)
+
+# Fit all regressors and inspect predictions & intervals
+fulldata_list <- list(
+  P  = max(mod.exp$pp),
+  M  = nrow(mod.exp),
+  O = 2,
+  Reg = cbind(mod.exp$mod.reg, mod.exp$EV.reg),
+  y  = mod.exp$mod.choice,
+  Pn = mod.exp$pp
+)
+
+multifit <- stan(
+  file = "src/Stan/logistic_regression_Opred.stan",
+  data = fulldata_list,
+  chains = 4,
+  warmup = 1500,
+  iter = 5000,
+  cores = 4,
+  verbose = T,
+  save_warmup=F
+)
+
+## Choices based on a combination of EV, stepsleft & start+goal ID WITH individual differences...? ----
+noiseL <- 0            # Noise added after sampling bernoulli trials
+O      <- 3            # Effects: EV, stepsleft, startgoalID
+ES     <- c(1, 0.1, 0.5) # True regression weights in Beta
+ESvar  <- 0.2          # Variation in beta weights per participant
+nPP    <- 15           # Number of participants
+ppES   <- t(sapply(1:nPP, function(s){rnorm(O, sd=ESvar) + ES}))
+
+
+multi.exp <- full.exp[pp %in% 1:nPP & !is.na(opt.choice), list(v,start.c, goal.c, sym.id, opt.choice,
+                                                           pol.type=if(trtype=='deep'){'deep'}else{'bottleneck'})
+                    ,by=.(pp,tr,stepsleft)
+                    ][opt.choice==-1, opt.choice:=0
+                      ][,c('reg.id','free.id'):=list(interaction(pol.type,sym.id), interaction(pol.type,sym.id,stepsleft))
+                        ][,c('reg.id','free.id'):=list(droplevels(reg.id),droplevels(free.id))
+                          ][,c('reg.code', 'free.code', 'stepsleft'):=list(match(reg.id,levels(reg.id)),match(free.id,levels(free.id)),stepsleft+1)
+                            ][,mod.reg:=modchoice.get(v, start.c, goal.c, idmap.g, bt.map, 0), by=.(pp,tr,stepsleft)
+                              ][,EV.reg:=EVregMat[sym.it==sym.id & pol.id==pol.type & steps==(stepsleft-1)]$EV,by=.(pp,tr,stepsleft)
+                                ][,multi.choice:=multichoice.get(pp=pp, ppES=ppES, EVR=EV.reg, Sl=stepsleft, modR=mod.reg, noiseL=noiseL), by=.(pp,tr,stepsleft)]
+
+ggplot(multi.exp[,sum(multi.choice==1)/.N,by=.(sym.id,pol.type,stepsleft)]) +
+  geom_line(aes(x=stepsleft, y=V1, col=sym.id)) +
+  geom_point(aes(x=stepsleft, y=V1, col=sym.id)) +
+  facet_grid(pol.type~sym.id)
+
+# Fit all regressors and inspect predictions & intervals
+multidata_list <- list(
+  P  = max(multi.exp$pp),
+  M  = nrow(multi.exp),
+  O = 3,
+  Reg = cbind(multi.exp$EV.reg, multi.exp$stepsleft, multi.exp$mod.reg),
+  y  = multi.exp$multi.choice,
+  Pn = multi.exp$pp
+)
+
+multifit <- stan(
+  file = "src/Stan/logistic_regression_Opred.stan",
+  data = multidata_list,
+  chains = 4,
+  warmup = 2000,
+  iter = 10000,
+  cores = 4,
+  verbose = T,
+  save_warmup=F
+)
+
+# Omit the start+goal ID
+nomod_list <- list(
+  P  = max(multi.exp$pp),
+  M  = nrow(multi.exp),
+  O = 2,
+  Reg = cbind(multi.exp$EV.reg, multi.exp$stepsleft),
+  y  = multi.exp$multi.choice,
+  Pn = multi.exp$pp
+)
+
+nomodfit <- stan(
+  file = "src/Stan/logistic_regression_Opred.stan",
+  data = nomod_list,
+  chains = 4,
+  warmup = 2000,
+  iter = 10000,
+  cores = 4,
+  verbose = T,
+  save_warmup=F
+)

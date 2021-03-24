@@ -32,13 +32,13 @@ transformed parameters{
 model{
   target += normal_lpdf(sigma|0,1) - 2*normal_lccdf(0|0,1);
   
-  alpha ~ normal(0,10);
-  beta ~ normal(0, 10);
+  target += normal_lpdf(alpha|0,10);
+  target += normal_lpdf(beta|0,10);
   
   target += std_normal_lpdf(z_par_alpha);
   target += std_normal_lpdf(z_par_beta);
   
   for(n in 1:M){
-    y[n] ~ bernoulli_logit(alpha + par_alpha[Pn[n]] + (beta + par_beta[Pn[n]])*Opt[n]);
+    target += bernoulli_logit_lpmf(y[n]|alpha + par_alpha[Pn[n]] + (beta + par_beta[Pn[n]])*Opt[n]);
   }
 }
