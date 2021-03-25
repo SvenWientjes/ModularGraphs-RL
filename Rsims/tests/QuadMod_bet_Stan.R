@@ -4,9 +4,11 @@
 library(ggplot2)
 library(data.table)
 library(rstan)
+library(foreach)
 library(bayesplot)
 library(stringr)
 library(bridgesampling)
+library(bayestestR)
 
 # Load Functions from /src/
 load('data/QuadMod-Bet_testDat-1.RData')
@@ -769,9 +771,9 @@ multi.exp <- full.exp[pp %in% 1:nPP & !is.na(opt.choice), list(v,start.c, goal.c
                               ][,EV.reg:=EVregMat[sym.it==sym.id & pol.id==pol.type & steps==(stepsleft-1)]$EV,by=.(pp,tr,stepsleft)
                                 ][,multi.choice:=multichoice.get(pp=pp, ppES=ppES, EVR=EV.reg, Sl=stepsleft, modR=mod.reg, noiseL=noiseL), by=.(pp,tr,stepsleft)]
 
-ggplot(multi.exp[,sum(multi.choice==1)/.N,by=.(sym.id,pol.type,stepsleft)]) +
-  geom_line(aes(x=stepsleft, y=V1, col=sym.id)) +
-  geom_point(aes(x=stepsleft, y=V1, col=sym.id)) +
+ggplot(multi.exp[,sum(multi.choice==1)/.N,by=.(pp,sym.id,pol.type,stepsleft)][,list(sym.id,pol.type,stepsleft,V1,pp=as.factor(pp))]) +
+  geom_line(aes(x=stepsleft, y=V1, col=pp)) +
+  geom_point(aes(x=stepsleft, y=V1, col=pp)) +
   facet_grid(pol.type~sym.id)
 
 # Fit all regressors and inspect predictions & intervals
