@@ -5,11 +5,13 @@
         <script src="jspsych-6.2.0/jspsych.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-html-keyboard-response.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-image-keyboard-response.js"></script>
+        <script src="jspsych-6.2.0/plugins/jspsych-canvas-keyboard-response.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-survey-text.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-fullscreen.js"></script>
         <script src="js/screens.js"></script> <!-- Experiment defining variables -->
         <script src="js/trajectories.js"></script> <!-- Experiment defining variables -->
         <script src="js/goallist.js"></script> <!-- Experiment defining variables -->
+        <script src="js/FixationCanvas.js"></script> 
         <link href="jspsych-6.2.0/css/jspsych.css" rel="stylesheet" type="text/css">
     </head>
     <body></body>
@@ -84,7 +86,7 @@
     console.log(rooms);
 
     // Generate array of preloading images
-    var pre_load_stimuli = [rooms, goals];
+    var pre_load_stimuli = [rooms, goals, 'img/Hallway.png'];
 
     // Define earned points throughout experiment (will be updated)
     var total_reward = 65;
@@ -100,11 +102,15 @@
 
     // Set up the fixation cross
     var fixation = {
-        type: 'image-keyboard-response',
-        stimulus: 'img/fixation_cross.png',
+        type: 'html-keyboard-response',
+        stimulus: '<div id="FixationDiv" style="margin:0 auto;"><canvas id="FixationCv"></canvas></div>',
+        on_load: function(){
+            FixationC()
+        },
         choices: jsPsych.NO_KEYS,
         trial_duration: function(){
-            return [250,500,750,1000,1250,1500,1750,2000][Math.floor(Math.random()*8)]
+            //return [250,500,750,1000,1250,1500,1750,2000][Math.floor(Math.random()*8)]
+            return [2000]
         }
     }
 
