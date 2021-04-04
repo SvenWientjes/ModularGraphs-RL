@@ -754,10 +754,12 @@ multifit <- stan(
 ## Choices based on a combination of EV, stepsleft & start+goal ID WITH individual differences...? ----
 noiseL <- 0            # Noise added after sampling bernoulli trials
 O      <- 3            # Effects: EV, stepsleft, startgoalID
-ES     <- c(1, 0.1, 0.5) # True regression weights in Beta
+ES     <- c(0.8, 0.4, 0.5) # True regression weights in Beta
 ESvar  <- 0.2          # Variation in beta weights per participant
-nPP    <- 15           # Number of participants
+nPP    <- 30           # Number of participants
 ppES   <- t(sapply(1:nPP, function(s){rnorm(O, sd=ESvar) + ES}))
+# First 20 pp use only 2 reg, rest uses 3
+ppES[1:20,3] <- 0
 
 
 multi.exp <- full.exp[pp %in% 1:nPP & !is.na(opt.choice), list(v,start.c, goal.c, sym.id, opt.choice,
@@ -774,6 +776,11 @@ multi.exp <- full.exp[pp %in% 1:nPP & !is.na(opt.choice), list(v,start.c, goal.c
 ggplot(multi.exp[,sum(multi.choice==1)/.N,by=.(pp,sym.id,pol.type,stepsleft)][,list(sym.id,pol.type,stepsleft,V1,pp=as.factor(pp))]) +
   geom_line(aes(x=stepsleft, y=V1, col=pp)) +
   geom_point(aes(x=stepsleft, y=V1, col=pp)) +
+  facet_grid(pol.type~sym.id)
+
+ggplot(multi.exp[,sum(multi.choice==1)/.N,by=.(sym.id,pol.type,stepsleft)][,list(sym.id,pol.type,stepsleft,V1)]) +
+  geom_line(aes(x=stepsleft, y=V1)) +
+  geom_point(aes(x=stepsleft, y=V1)) +
   facet_grid(pol.type~sym.id)
 
 # Fit all regressors and inspect predictions & intervals
@@ -817,3 +824,25 @@ nomodfit <- stan(
   verbose = T,
   save_warmup=F
 )
+
+# HBI
+HBI2_list <- list(
+  P  = max(multi.exp$pp),
+  M  = nrow(multi.exp),
+  O = 3,
+  Reg = cbind(multi.exp$EV.reg, multi.exp$stepsleft, multi.exp$mod.reg),
+  y  = multi.exp$multi.choice,
+  Pn = multi.exp$pp
+)
+
+HBI2fit <- stan(
+  file = "src/Stan/HBI_3v2_logistic.stan",
+  data = HBI2_list,
+  chains = 4,
+  warmup = 2000,
+  iter = 15000,
+  cores = 4,
+  verbose = T,
+  save_warmup=F
+)
+
