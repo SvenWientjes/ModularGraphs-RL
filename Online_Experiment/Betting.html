@@ -7,9 +7,11 @@
         <script src="jspsych-6.2.0/plugins/jspsych-image-keyboard-response.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-survey-text.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-fullscreen.js"></script>
+        <script src="jspsych-6.2.0/plugins/jspsych-canvas-keyboard-response.js"></script>
         <script src="js/screens.js"></script> <!-- Experiment defining variables -->
         <script src="js/trajectories.js"></script> <!-- Experiment defining variables -->
         <script src="js/goallist.js"></script> <!-- Experiment defining variables -->
+        <script src="js/FixationCanvas.js"></script> 
         <link href="jspsych-6.2.0/css/jspsych.css" rel="stylesheet" type="text/css">
     </head>
     <body></body>
@@ -84,10 +86,11 @@
     console.log(rooms);
 
     // Generate array of preloading images
-    var pre_load_stimuli = [rooms, goals];
+    var pre_load_stimuli = ['img/Hallway.png', rooms, goals];
 
     // Define earned points throughout experiment (will be updated)
     var total_reward = 0;
+    var miss = false;
 
     // Go fullscreen from here on out
     timeline.push({
@@ -97,13 +100,29 @@
 
     // Set up the fixation cross
     var fixation = {
-        type: 'image-keyboard-response',
-        stimulus: 'img/fixation_cross.png',
+        type: 'html-keyboard-response',
+        stimulus: '<div id="FixationDiv" style="margin:0 auto;"><canvas id="FixationCv"></canvas></div>',
+        on_load: function(){
+            FixationC(miss);
+            miss=false;
+        },
         choices: jsPsych.NO_KEYS,
         trial_duration: function(){
             return [250,500,750,1000,1250,1500,1750,2000][Math.floor(Math.random()*8)]
         }
     }
+
+    /*var fixation = {
+        type: 'canvas-keyboard-response',
+        stimulus: testFix,
+        choices: jsPsych.NO_KEYS,
+        on_load: function(){
+
+        }
+        trial_duration: function(){
+            return [250,500,750,1000,1250,1500,1750,2000][Math.floor(Math.random()*8)]
+        }
+    }*/
 
     mbendf = 'downend';
 
@@ -129,7 +148,7 @@
     }
 
     // Define a miniblock!
-    for (var i=0; i<5; i++) {
+    for (var i=0; i<1; i++) {
         // Get images in array in order of presentation on trial 
         var node_imgs = [];
         for (var j=0; j<16; j++) { //iterate over trialorder to add stimuli
@@ -232,6 +251,14 @@
                     data.decision = mbendf;                // Append participant decision to trial data
                     trBet = 5;                             // Reset miniblock-bet for next miniblock
                     trRew = 0;                             // Reset miniblock-reward for next miniblock
+                }
+                if (data.key_press == null) { //No response given
+                    total_reward = total_reward - 1;       // Punish total reward
+                    data.totRew = total_reward;            // Correct current total reward
+                    trRew = trRew - 1;                     // Indicate punishment at trial reward
+                    data.trRew = trRew;                    // Correct current trial reward
+                    miss = true;
+                    data.decision = mbendf;
                 }
             }
         }
