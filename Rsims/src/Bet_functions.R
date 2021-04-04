@@ -140,3 +140,26 @@ multichoice.get <- function(pp, ppES, EVR, Sl, modR, noiseL){
     return(sample(c(choiceS,as.integer(!choiceS)), prob=c(1-noiseL, noiseL), size=1))
 }
 
+seq.SR.EV <- function(tr, v, goal, stepsleft, lr, gamm, ct, winM){
+  SR.EV <- rep(NA,length(v)) # Initialize SR-based EVs that dynamically evolve as SR gets better learned
+  tridx <- 1                 # Initialize indexing variable to fill SR.EV
+  SR <- diag(20)             # Initialize SR as punctate base matrix
+  for(trial in 1:max(tr)){
+    # Store current trial state sequence
+    episode <- v[tr==trial]
+    # Get first state EV
+    vt <- SR %*% rep(-(ct^stepsleft[tridx]), 20); vt[goal[tridx]] <- winM
+    SR.EV[tridx] <- (SR %*% vt)[episode[1]]
+    tridx <- tridx+1
+    for(experience in 2:length(episode)){
+      I <- rep(0,20); I[episode[experience-1]] <- 1 # One-hot state t-1 (to be updated)
+      er <- I + gamm * SR[episode[experience],] - SR[episode[experience-1],] # Get error of t-1 SR vs t SR
+      SR[episode[experience-1],] = SR[episode[experience-1],] + lr*er # Update t-1 SR
+      # Perform EV
+      vt <- SR %*% rep(-(ct^stepsleft[tridx]), 20); vt[goal[tridx]] <- winM
+      SR.EV[tridx] <- (SR %*% vt)[episode[experience]]
+      tridx <- tridx+1
+    }
+  }
+  return(SR.EV)
+}
