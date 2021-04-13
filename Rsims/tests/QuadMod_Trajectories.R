@@ -105,6 +105,29 @@ trTypes[,nTrs:=startp*goalp*nWin]
 trTypes[,nLose:=startp*goalp*nLose]
 trTypes <- trTypes[c(6,7,8,9,2,3,4,5,1),]
 
+#### Plot of optimal Expected Values by winM ----
+d.start <- c(2)
+d.goals <- c(6,8,10)
+b.start <- c(5)
+b.goals <- c(6,7,10,20,19,16)
+winM <- 3
+maxSteps <- 14
+EVanalytic <- data.table(start.v=0, goal.v=0, stepsleft=0, EV=0)
+  
+for(i in 1:3){
+  stateVec <- rep(0,20)
+  stateVec[d.start] <- 1
+  tMat.goal <- tMat
+  tMat.goal[d.goals[i],] <- 0
+  hitC <- rep(0,maxSteps)
+  for(s in maxSteps:1){
+    hitC[s] <- (stateVec %*% matrix.power(tMat.goal,s))[d.goals[i]]
+  }
+  curEV <- cumsum(hitC)*winM + (1-cumsum(hitC))*-1
+  EVanalytic <- rbind(EVanalytic, data.table(start.v=d.start, goal.v=d.goals[i], stepsleft=1:maxSteps, EV=curEV))
+}
+
+
 ## Generating trajectories ----
 registerDoParallel(cores=20)
 # Initialize full experiment

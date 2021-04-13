@@ -234,3 +234,48 @@ get.opt.choice <- function(tr, v, goal, stepsleft, tMat, winM, loseM){
   opt.choice <- as.numeric(opt.EV>0)
   return(opt.choice)
 }
+
+true.opt.choice <- function(tr, v, goal, stepsleft, tMat, winM, loseM){
+  opt.EV <- rep(0, length(v))
+  tridx <- 1
+  for(tri in 1:max(tr)){
+    curBet <- 5
+    tMat.goal <- tMat
+    tMat.goal[goal[tridx],] <- 0
+    curV <- v[tr==tri]
+    for(i in 1:length(curV)){
+      if(stepsleft[tridx]==0 & v[tridx]!=goal[tridx]){
+        opt.EV[tridx] <- loseM
+        tridx <- tridx + 1
+      }else if(v[tridx] == goal[tridx]){
+        opt.EV[tridx] <- winM
+        tridx <- tridx + 1
+      }else{
+        stateVec <- rep(0, 20)
+        stateVec[v[tridx]] <- 1
+        hitC <- rep(0,stepsleft[tridx])
+        for(s in stepsleft[tridx]:1){
+          hitC[s] <- (stateVec %*% matrix.power(tMat.goal,s))[goal[tridx]]
+        }
+        betEV <-  sum(hitC)*winM + (1-sum(hitC))*loseM
+        remEV <- 0
+        if(curBet>0){
+          remEV <- (1-sum(hitC)) * -(loseM)
+        }
+        if(betEV > remEV){
+          curBet <- curBet+1
+          opt.EV[tridx] <- betEV
+          tridx <- tridx+1
+        }else if(betEV<remEV){
+          curBet <- max(curBet-1,0)
+          opt.EV[tridx] <- betEV-remEV
+          tridx <- tridx+1
+        }else if(betEV==remEV){
+          browser()
+        }
+      }
+    }
+  }
+  opt.choice <- as.numeric(opt.EV>0)
+  return(opt.choice)
+}

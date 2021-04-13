@@ -94,16 +94,16 @@ lc.exp[,list(group=sum((tr/1:25)>4)+1, opt.choice,choiceS),by=.(pp,tr,stepsleft)
 
 ## Get LynnEV and choices per participant - Compare with 
 lc.exp <- full.exp[,list(pp,tr,stepsleft,v,goal)
-                   ][,LynnEV:=seq.Lynn.EV(tr,v,goal,stepsleft,betap=100,winM=2,loseM=-1)$Lynn.EV,by=pp
+                   ][,LynnEV:=seq.Lynn.EV(tr,v,goal,stepsleft,betap=0.2,winM=1,loseM=-1)$Lynn.EV,by=pp
                    ][stepsleft==0 & v!=goal, LynnEV:=-1
-                   ][v==goal, LynnEV:=2]
+                   ][v==goal, LynnEV:=1]
 lc.exp[,LynnC:=rbinom(1,1,boot::inv.logit(Inf*LynnEV)),by=.(pp,tr,stepsleft)
        ][LynnC==0,LynnC:=-1
-       ][,OptC:=get.opt.choice(tr,v,goal,stepsleft,tMat,winM=2,loseM=-1),by=pp
+       ][,OptC:=get.opt.choice(tr,v,goal,stepsleft,tMat,winM=1,loseM=-1),by=pp
        ][OptC==0,OptC:=-1
        ][,c('LynnBet','OptBet'):=list(bet.sum(LynnC,5), bet.sum(OptC,5)), by=.(pp,tr)
        ][stepsleft==0 & v!=goal, c('LynnRew','OptRew'):=list(-LynnBet, -OptBet)
-       ][v==goal, c('LynnRew','OptRew'):=list(LynnBet*2, OptBet*2)]
+       ][v==goal, c('LynnRew','OptRew'):=list(LynnBet*1, OptBet*1)]
 
 # Plot of proportion of optimal choices by trial
 lc.exp[,list(group=sum((tr/1:25)>4)+1, LynnC, OptC),by=.(pp,tr,stepsleft)
@@ -129,16 +129,17 @@ lc.exp[!is.na(LynnRew),list(group=sum((tr/1:25)>4)+1, LynnRew, OptRew),by=.(pp,t
            geom_line(data=.SD[,list(m=mean(grRew)),by=group], aes(x=group, y=m), col='purple')+
            geom_line(data=.SD[,list(m=mean(grOpt)),by=group], aes(x=group, y=m), col='green')]
 
+
 ## Get SREV and choices
 sr.exp <- full.exp[,list(pp,tr,stepsleft,v,goal)
-                   ][,SREV:=seq.SR.EV(tr,v,goal,stepsleft,lr=0.05,gamm=0.95,ct=0.6,winM=1),by=pp
+                   ][,SREV:=seq.SR.EV(tr,v,goal,stepsleft,lr=0.05,gamm=0.95,ct=0.6,winM=5),by=pp
                    ][,SRC:=rbinom(1,1,boot::inv.logit(Inf*SREV)),by=.(pp,tr,stepsleft)
                    ][SRC==0, SRC:=-1
                    ][,OptC:=get.opt.choice(tr,v,goal,stepsleft,tMat,winM=1,loseM=-1),by=pp
                    ][OptC==0, OptC:=-1
                    ][,c('SRBet','OptBet'):=list(bet.sum(SRC,5), bet.sum(OptC,5)), by=.(pp,tr)
                    ][stepsleft==0 & v!=goal, c('SRRew','OptRew'):=list(-SRBet, -OptBet)
-                   ][v==goal, c('SRRew','OptRew'):=list(SRBet, OptBet)]
+                   ][v==goal, c('SRRew','OptRew'):=list(SRBet*1, OptBet*1)]
 
 sr.exp[,list(group=sum((tr/1:25)>4)+1,SRC,OptC),by=.(pp,tr,stepsleft)
        ][,pp:=as.factor(pp)
@@ -155,4 +156,52 @@ sr.exp[!is.na(SRRew),list(group=sum((tr/1:25)>4)+1,SRRew,OptRew),by=.(pp,tr,step
            geom_line(data=.SD[,list(m=mean(grRew)),by=group],aes(x=group,y=m),col='purple')+
            geom_line(aes(x=group,y=grOpt,group=pp),col='green',alpha=0.1)+
            geom_line(data=.SD[,list(m=mean(grOpt)),by=group],aes(x=group,y=m),col='green')]
+
+# Compare with heuristic strategies! 
+sr.exp[,RiskC:=1
+       ][,RiskBet:=bet.sum(RiskC,5), by=.(pp,tr)
+       ][stepsleft==0&v!=goal, RiskRew:=-RiskBet
+       ][v==goal, RiskRew:=RiskBet*1]
+sr.exp[,StepC:=1
+       ][stepsleft<7&v!=goal, StepC:=-1
+       ][,StepBet:=bet.sum(StepC,5), by=.(pp,tr)
+       ][stepsleft==0&v!=goal, StepRew:=-StepBet
+       ][v==goal, StepRew:=StepBet*1]
+# Plot heuristic & informed choice densities
+sr.exp[!is.na(SRRew), list(totS=sum(SRRew), totO=sum(OptRew), totR=sum(RiskRew), totSt=sum(StepRew)),by=pp
+       ][,ggplot(.SD)+geom_density(aes(x=totS),col='purple')+geom_density(aes(x=totO),col='green')+
+           geom_density(aes(x=totR),col='red')+geom_density(aes(x=totSt),col='blue')]
+
+### Model True vs Fake optimal choices!
+opt.exp <- full.exp[,list(pp,tr,stepsleft,v,goal)
+                    ][,gOptC:=get.opt.choice(tr,v,goal,stepsleft,tMat,winM=1,loseM=-1),by=pp
+                    ][,tOptC:=true.opt.choice(tr,v,goal,stepsleft,tMat,winM=1,loseM=-1),by=pp
+                    ][gOptC==0,gOptC:=-1
+                    ][tOptC==0,tOptC:=-1
+                    ][,c('gOptBet','tOptBet'):=list(bet.sum(gOptC,15), bet.sum(tOptC,15)), by=.(pp,tr)
+                    ][stepsleft==0&v!=goal, c('gOptRew','tOptRew'):=list(-gOptBet, -tOptBet)
+                    ][v==goal, c('gOptRew','tOptRew'):=list(gOptBet*1, tOptBet*1)]
+#Plot densities - fake is actually better?
+opt.exp[!is.na(gOptRew), list(totG=sum(gOptRew), totT=sum(tOptRew)),by=pp
+        ][,ggplot(.SD)+geom_density(aes(x=totG),col='red')+geom_density(aes(x=totT),col='green')]
+
+opt.exp[,list(betc = sum(gOptC==1), totC = .N, propC=sum(gOptC==1)/.N), by=pp]
+
+### Model heuristic: always bet up until - 9 stepsleft
+opt.exp <- full.exp[,list(pp,tr,stepsleft,v,goal)
+                    ][,gOptC:=get.opt.choice(tr,v,goal,stepsleft,tMat,winM=1,loseM=-1),by=pp
+                    ][,tOptC:=true.opt.choice(tr,v,goal,stepsleft,tMat,winM=1,loseM=-1),by=pp
+                    ][gOptC==0,gOptC:=-0
+                    ][tOptC==0,tOptC:=-0
+                    ][,c('gHeurC','tHeurC'):=list(gOptC,tOptC)
+                    ][stepsleft>9,c('gHeurC','tHeurC'):=list(1,1)
+                    ][,c('gOptBet','tOptBet','gHeurBet','tHeurBet'):=list(bet.sum(gOptC,0),bet.sum(tOptC,0),bet.sum(gHeurC,0),bet.sum(tHeurC,0)),by=.(pp,tr)
+                    ][stepsleft==0&v!=goal, c('gOptRew','tOptRew','gHeurRew','tHeurRew'):=list(-gOptBet,-tOptBet,-gHeurBet,-tHeurBet)
+                    ][v==goal, c('gOptRew','tOptRew','gHeurRew','tHeurRew'):=list(gOptBet*1, tOptBet*1, gHeurBet*1, tHeurBet*1)]
+# Plot densities
+opt.exp[!is.na(gOptRew), list(mGopt=sum(gOptRew), mTopt=sum(tOptRew), mGheur=sum(gHeurRew), mTheur=sum(tHeurRew)),by=pp
+        ][,ggplot(.SD)+geom_density(aes(x=mGopt),col='red')+geom_density(aes(x=mTopt),col='green')+
+            geom_density(aes(x=mGheur),col='blue')+geom_density(aes(x=mTheur),col='purple')]
+
+
 
