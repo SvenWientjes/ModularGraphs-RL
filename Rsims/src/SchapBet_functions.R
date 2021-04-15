@@ -1,5 +1,5 @@
 # Function that calculates optimal choices for Schapiro-Bet task
-get.opt.choice <- function(tr, v, goal, stepsleft, tMat, winM, loseM){
+#get.opt.choice <- function(tr, v, goal, stepsleft, tMat, winM, loseM){
   opt.EV <- rep(0, length(v))
   for(toti in 1:length(v)){
     I <- rep(0,20); I[v[toti]]<-1
@@ -21,7 +21,7 @@ get.opt.choice <- function(tr, v, goal, stepsleft, tMat, winM, loseM){
 }
 
 # Function to sample a start-end combination satisfying availability and miniblock-type constraints
-elig.ends <- function(startType, goalType, startCount, goalCount, telomeres, idmap.g, bt.map, c.map){
+#elig.ends <- function(startType, goalType, startCount, goalCount, telomeres, idmap.g, bt.map, c.map){
   all.el <- matrix(c(0,0),nrow=1,ncol=2)
   colnames(all.el) <- c('Var1', 'Var2')
   if(startType == 'Deep'){
