@@ -1,8 +1,8 @@
 # Function that calculates optimal choices for Schapiro-Bet task
-#get.opt.choice <- function(tr, v, goal, stepsleft, tMat, winM, loseM){
+get.opt.choice <- function(tr, v, goal, stepsleft, tMat, winM, loseM){
   opt.EV <- rep(0, length(v))
   for(toti in 1:length(v)){
-    I <- rep(0,20); I[v[toti]]<-1
+    I <- rep(0,15); I[v[toti]]<-1
     if(stepsleft[toti]==0|v[toti]==goal[toti]){
       if(v[toti]==goal[toti]){opt.EV[toti]<-winM}else{opt.EV[toti]<-loseM}
     }else{
@@ -17,131 +17,18 @@
     }
   }
   opt.choice <- as.numeric(opt.EV>0)
+  opt.choice[which(opt.choice==0)] <- -1
   return(opt.choice)
 }
 
 # Function to sample a start-end combination satisfying availability and miniblock-type constraints
-#elig.ends <- function(startType, goalType, startCount, goalCount, telomeres, idmap.g, bt.map, c.map){
-  all.el <- matrix(c(0,0),nrow=1,ncol=2)
-  colnames(all.el) <- c('Var1', 'Var2')
-  if(startType == 'Deep'){
-    el.start <- unlist(idmap.g)
-    el.start <- el.start[which(startCount[el.start]!=0)]
-    
-  }else if(startType == 'Bottleneck'){
-    el.start <- unlist(bt.map)
-    el.start <- el.start[which(startCount[el.start]!=0)]
+bet.sum <- function(vec, startP){
+  cum <- rep(0, length(vec))
+  cum[1] <- max(startP+vec[1],0)
+  for(i in 2:length(vec)){
+    cum[i] <- max(0, cum[i-1]+vec[i])
   }
-  # Check which goals are still available for each available start!
-  if(goalType == 'Deep'){
-    agoal <- unlist(idmap.g)
-    agoal <- agoal[which(goalCount[agoal]!=0)]
-    for(Is in el.start){
-      start.c <- names(c.map)[sapply(idmap.g, function(cc){Is %in% cc})]
-      el.c    <- names(c.map)[sapply(c.map, function(cm){start.c %in% cm})]
-      goalp   <- c(sapply(el.c, function(idg){idmap.g[[idg]]}))
-      tgoals  <- goalp[which(goalp %in% agoal)]
-      all.el <- rbind(all.el, expand.grid(Is, tgoals))
-    }
-  }else if(goalType == 'Bottleneck Close'){
-    agoal <- unlist(bt.map)
-    agoal <- agoal[which(goalCount[agoal]!=0)]
-    for(Is in el.start){
-      start.c <- names(c.map)[sapply(idmap.g, function(cc){Is %in% cc})]
-      el.c    <- names(c.map)[sapply(c.map, function(cm){start.c %in% cm})]
-      el.nidx <- sapply(el.c, function(cv){which(c.map[[cv]] == start.c)})
-      goalp  <- sapply(1:2, function(cidx){bt.map[[el.c[cidx]]][el.nidx[cidx]]})
-      tgoals  <- goalp[which(goalp %in% agoal)]
-      all.el <- rbind(all.el, expand.grid(Is, tgoals))
-    }
-  }else if(goalType == 'Bottleneck Far'){
-    agoal <- unlist(bt.map)
-    agoal <- agoal[which(goalCount[agoal]!=0)]
-    for(Is in el.start){
-      start.c <- names(c.map)[sapply(idmap.g, function(cc){Is %in% cc})]
-      el.c    <- names(c.map)[sapply(c.map, function(cm){start.c %in% cm})]
-      el.nidx <- sapply(el.c, function(cv){which(c.map[[cv]] != start.c)})
-      goalp  <- sapply(1:2, function(cidx){bt.map[[el.c[cidx]]][el.nidx[cidx]]})
-      tgoals  <- goalp[which(goalp %in% agoal)]
-      all.el <- rbind(all.el, expand.grid(Is, tgoals))
-    }
-  }else if(goalType == 'Close Bottleneck Close'){
-    agoal <- unlist(bt.map)
-    agoal <- agoal[which(goalCount[agoal]!=0)]
-    for(Is in el.start){
-      start.c <- names(c.map)[sapply(bt.map, function(cc){Is %in% cc})]
-      el.c    <- c.map[[start.c]][which(bt.map[[start.c]]==Is)]
-      goalp <- bt.map[[el.c]][which(c.map[[el.c]]==start.c)]
-      tgoals  <- goalp[which(goalp %in% agoal)]
-      all.el <- rbind(all.el, expand.grid(Is, tgoals))
-    }
-  }else if(goalType == 'Close Bottleneck Far'){
-    agoal <- unlist(bt.map)
-    agoal <- agoal[which(goalCount[agoal]!=0)]
-    for(Is in el.start){
-      start.c <- names(c.map)[sapply(bt.map, function(cc){Is %in% cc})]
-      el.c    <- c.map[[start.c]][which(bt.map[[start.c]]==Is)]
-      goalp <- bt.map[[el.c]][which(c.map[[el.c]]!=start.c)]
-      tgoals  <- goalp[which(goalp %in% agoal)]
-      all.el <- rbind(all.el, expand.grid(Is, tgoals))
-    }
-  }else if(goalType == 'Far Bottleneck Close'){
-    agoal <- unlist(bt.map)
-    agoal <- agoal[which(goalCount[agoal]!=0)]
-    for(Is in el.start){
-      start.c <- names(c.map)[sapply(bt.map, function(cc){Is %in% cc})]
-      el.c    <- c.map[[start.c]][which(bt.map[[start.c]]!=Is)]
-      goalp <- bt.map[[el.c]][which(c.map[[el.c]]==start.c)]
-      tgoals  <- goalp[which(goalp %in% agoal)]
-      all.el <- rbind(all.el, expand.grid(Is, tgoals))
-    }
-  }else if(goalType == 'Far Bottleneck Far'){
-    agoal <- unlist(bt.map)
-    agoal <- agoal[which(goalCount[agoal]!=0)]
-    for(Is in el.start){
-      start.c <- names(c.map)[sapply(bt.map, function(cc){Is %in% cc})]
-      el.c    <- c.map[[start.c]][which(bt.map[[start.c]]!=Is)]
-      goalp <- bt.map[[el.c]][which(c.map[[el.c]]!=start.c)]
-      tgoals  <- goalp[which(goalp %in% agoal)]
-      all.el <- rbind(all.el, expand.grid(Is, tgoals))
-    }
-  }else if(goalType == 'Far Deep'){
-    agoal <- unlist(idmap.g)
-    agoal <- agoal[which(goalCount[agoal]!=0)]
-    for(Is in el.start){
-      start.c <- names(c.map)[sapply(bt.map, function(cc){Is %in% cc})]
-      el.c    <- c.map[[start.c]][which(bt.map[[start.c]]!=Is)]
-      goalp <- idmap.g[[el.c]]
-      tgoals  <- goalp[which(goalp %in% agoal)]
-      all.el <- rbind(all.el, expand.grid(Is, tgoals))
-    }
-  }else if(goalType == 'Close Deep'){
-    agoal <- unlist(idmap.g)
-    agoal <- agoal[which(goalCount[agoal]!=0)]
-    for(Is in el.start){
-      start.c <- names(c.map)[sapply(bt.map, function(cc){Is %in% cc})]
-      el.c    <- c.map[[start.c]][which(bt.map[[start.c]]==Is)]
-      goalp <- idmap.g[[el.c]]
-      tgoals  <- goalp[which(goalp %in% agoal)]
-      all.el <- rbind(all.el, expand.grid(Is, tgoals))
-    }
-  }
-  M1 = setkey(data.table(telomeres))
-  M2 = setkey(data.table(all.el))
-  
-  dupes <- na.omit(
-                    M2[M1,which=TRUE]
-                  )
-  all.el <- all.el[-dupes,]
-  
-  if(nrow(all.el) <= 0){
-    browser()
-    stop('There was no eligible goal found...')
-  }else{
-    #all.el <- all.el[-1,]
-    
-    return(all.el[sample(1:nrow(all.el),1),])
-  }
+  return(cum)
 }
 
 # Function for sampling trajectories that have a specific start and reach a specific goal
@@ -160,6 +47,7 @@ samp.win <- function(start.v, goal.v, nVisit, Edges){
   return(v)
 }
 
+# Function for sampling trajectories that have a specific start and do not reach a specific goal
 samp.lose <- function(start.v, goal.v, nVisit, Edges){
   goal.present <- 1
   while(goal.present){
