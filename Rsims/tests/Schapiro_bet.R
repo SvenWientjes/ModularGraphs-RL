@@ -581,17 +581,17 @@ full.exp[, list(pp, tr, v, prev=shift(v,1L,type='lag')), by=.(pp,tr)
          ][,list(tmatje=list(table(prev,v))),by=.(pp,tr)
          ][,list(bigmat=list(Reduce('+',tmatje))), by=pp
          ][,list(tCost = sum((bigmat[[1]][bigmat[[1]]!=0]-20.41598)^2)),by=pp
-         ][order(tCost),]
+         ][order(tCost),]#[,ggplot()+geom_density(aes(x=tCost))]
 
 full.exp[, list(pp, tr, v, prev=shift(v,1L,type='lag')), by=.(pp,tr)
          ][,list(tmatje=list(table(prev,v))),by=.(pp,tr)
          ][,list(bigmat=list(Reduce('+',tmatje))), by=pp
-         ][pp==8,min(bigmat[[1]][bigmat[[1]]!=0])]
+         ][pp==23,min(bigmat[[1]][bigmat[[1]]!=0])]
 
 full.exp[, list(pp, tr, v, prev=shift(v,1L,type='lag')), by=.(pp,tr)
          ][,list(tmatje=list(table(prev,v))),by=.(pp,tr)
          ][,list(bigmat=list(Reduce('+',tmatje))), by=pp
-         ][pp==8,bigmat[[1]]]
+         ][pp==13,bigmat[[1]]]
 
 # Plot count of bottleneck transition vs  within cluster transitions
 bnC <- full.exp[, list(pp, tr, v, prev=shift(v,1L,type='lag')), by=.(pp,tr)
@@ -642,5 +642,14 @@ opt.exp[,.N,by=pp][,ggplot()+geom_density(aes(x=N))]
 ################################################################################
 # Write sequences to js for experiment #
 ## Do wowa ----
-aa
+nPP <- 40
+full.exp$v <- as.numeric(full.exp$v)
+test2sub <- paste0('var trajectories = [',paste(sapply(1:nPP, function(p){paste0('[',paste(sapply(1:nTrs, function(tri){paste0('[',toString(full.exp[pp==p & tr==tri,v]-1),']')}), collapse=', \n'),']')}), collapse= ', \n'), '];')
+write1sub <- file('data/trajectories.js')
+writeLines(test2sub, write1sub)
+close(write1sub)
 
+goal2sub <- paste0('var goallist = [',paste(sapply(1:nPP, function(p){paste0('[',paste(sapply(1:nTrs, function(tri){full.exp[pp==p & tr==tri,goal][1]-1}), collapse=', '),']')}), collapse=', \n'),'];')
+write1sub <- file('data/goallist.js')
+writeLines(goal2sub, write1sub)
+close(write1sub)
