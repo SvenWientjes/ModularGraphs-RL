@@ -14,8 +14,11 @@ function StimC(trBet){
         cst.stroke();
         circStart += 40;
     }
-    window.addEventListener('keydown', BetLive);
+    window.addEventListener('keydown', UpCheck);
+}
 
+function UpCheck(e){
+    window.addEventListener('keyup', BetLive);
 }
 
 function BetLive(e){
@@ -26,9 +29,11 @@ function BetLive(e){
         cst.arc(circStart,1060,20,0,2*Math.PI);
         cst.fill();
         cst.stroke();
-        window.removeEventListener('keydown', BetLive);
+        window.removeEventListener('keydown', UpCheck);
+        window.removeEventListener('keyup', BetLive);
     }else if(keyCode == 'z' || keyCode == 'Z'){
-        cst.clearRect(circStart-60,1040,40,40);
-        window.removeEventListener('keydown', BetLive);
+        //cst.clearRect(circStart-60,1040,40,40);
+       window.removeEventListener('keydown', UpCheck);
+        window.removeEventListener('keyup', BetLive);
     }
 }
