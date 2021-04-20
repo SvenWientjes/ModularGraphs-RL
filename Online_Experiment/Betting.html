@@ -9,6 +9,7 @@
         <script src="jspsych-6.2.0/plugins/jspsych-fullscreen.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-canvas-keyboard-response.js"></script>
         <script src="js/screens.js"></script> <!-- Experiment defining variables -->
+        <script src="js/StimulusCanvas.js"></script>
         <script src="js/trajectories.js"></script> <!-- Experiment defining variables -->
         <script src="js/goallist.js"></script> <!-- Experiment defining variables -->
         <script src="js/FixationCanvas.js"></script> 
@@ -28,22 +29,6 @@
 
     /* Add welcome screen to timeline */
     timeline.push(welcome);
-
-    /* Define the instruction screen 
-    var instructions = {
-        type: "html-keyboard-response",
-        stimulus: "<p>In this experiment, a circle will appear in the center of the screen.</p>"+
-        "<p>If the circle is <strong>blue</strong>, press the letter F on the keyboard as fast "+
-        "as you can.</p><p>If the circle in <strong>orange</strong>, press the letter J as fast"+
-        " as you can.</p>"+
-        "<div style='width: 700px;'>"+
-        "<div style='float: left;'><img src='img/blue.png'</img>" +
-        "<p class='small'><strong>Press the F key</strong></p></div>" +
-        "<div style='float: right;'><img src='img/orange.png'</img>" +
-        "<p class='small'><strong>Press the J key</strong></p></div></div>"+
-        "<p>Press any key to begin.</p>",
-        post_trial_gap: 2000
-    };*/
 
     var instructions = {
         type: "html-keyboard-response",
@@ -101,7 +86,7 @@
     // Set up the fixation cross
     var fixation = {
         type: 'html-keyboard-response',
-        stimulus: '<div id="FixationDiv" style="margin:0 auto;"><canvas id="FixationCv"></canvas></div>',
+        stimulus: FixStr,
         on_load: function(){
             FixationC(miss);
             miss=false;
@@ -111,18 +96,6 @@
             return [250,500,750,1000,1250,1500,1750,2000][Math.floor(Math.random()*8)]
         }
     }
-
-    /*var fixation = {
-        type: 'canvas-keyboard-response',
-        stimulus: testFix,
-        choices: jsPsych.NO_KEYS,
-        on_load: function(){
-
-        }
-        trial_duration: function(){
-            return [250,500,750,1000,1250,1500,1750,2000][Math.floor(Math.random()*8)]
-        }
-    }*/
 
     mbendf = 'downend';
 
@@ -170,12 +143,14 @@
         }
 
         var trial = {
-            type: 'image-keyboard-response',
+            type: 'html-keyboard-response',
             trial_duration: 1500,
-            stimulus_width: 1920,
+            //stimulus_width: 1920,
             choices: ['z','m'], //down, up,
             response_ends_trial: false,
-            stimulus: jsPsych.timelineVariable('stimulus'), //node_imgs in order determined by trialorder
+            stimulus: function(){var html='<div id="StimulusDiv" style="margin:0 auto;">';
+                html+='<canvas id="StimulusCv" width="1920" height="1080" style="background:url('+jsPsych.timelineVariable('stimulus',true)+')"></canvas></div>';
+                return html;}, //node_imgs in order determined by trialorder
             data: {
                 miniblock: i,
                 nSteps: jsPsych.timelineVariable('trialidx'),
@@ -191,6 +166,7 @@
                 node: function(){return rooms.indexOf(jsPsych.timelineVariable('stimulus', true))}, //node nr determined by idx of rooms
                 goalnode: goalorder[i],
             },
+            on_load: function(){StimC(trBet)},
             on_finish: function(data) {
                 if (data.key_press == 90 && data.node == data.goalnode) { // Bet down on goal
                     trBet = Math.max(trBet-1,0);           // Decrease bet by one
@@ -218,12 +194,12 @@
                     trRew = 0;                             // Reset miniblock-reward for next miniblock
                     jsPsych.endCurrentTimeline();
                 };
-                if (data.key_press == 90 && data.node != data.goalnode && data.nSteps != 0) { // Down bet
+                if (data.key_press == 90 && data.node != data.goalnode) { // Down bet
                     trBet = Math.max(trBet-1,0);     // Decrease bet by one
                     data.trBet = trBet;              // Correct current trial bet
                     data.decision = 'down';          // Append participant decision to trial data
                 };
-                if (data.key_press == 77 && data.node != data.goalnode && data.nSteps != 0) { // Up bet
+                if (data.key_press == 77 && data.node != data.goalnode) { // Up bet
                     trBet = Math.max(trBet+1,0);     // Increase bet by one
                     data.trBet = trBet;              // Correct current trial bet
                     data.decision = 'up';            // Append participant decision to trial data
