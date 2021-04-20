@@ -261,3 +261,9 @@ ggplot(plotdat.fit1, aes(x=stepsleft, y=meanT, group=sym.id, col=sym.id))+
   geom_errorbar(aes(ymin=lowT, ymax=highT)) +
   facet_grid(pol.type~sym.id)
 
+
+
+
+
+
+

@@ -148,7 +148,7 @@ seq.SR.EV <- function(tr, v, goal, stepsleft, lr, gamm, ct, winM){
     # Store current trial state sequence
     episode <- v[tr==trial]
     # Get first state EV
-    vt <- SR %*% rep(-(ct^stepsleft[tridx]), 20); vt[goal[tridx]] <- winM
+    vt <- rep(-(ct^stepsleft[tridx]), 20); vt[goal[tridx]] <- winM
     SR.EV[tridx] <- (SR %*% vt)[episode[1]]
     tridx <- tridx+1
     for(experience in 2:length(episode)){
@@ -156,10 +156,126 @@ seq.SR.EV <- function(tr, v, goal, stepsleft, lr, gamm, ct, winM){
       er <- I + gamm * SR[episode[experience],] - SR[episode[experience-1],] # Get error of t-1 SR vs t SR
       SR[episode[experience-1],] = SR[episode[experience-1],] + lr*er # Update t-1 SR
       # Perform EV
-      vt <- SR %*% rep(-(ct^stepsleft[tridx]), 20); vt[goal[tridx]] <- winM
+      vt <- rep(-(ct^stepsleft[tridx]), 20); vt[goal[tridx]] <- winM
       SR.EV[tridx] <- (SR %*% vt)[episode[experience]]
       tridx <- tridx+1
     }
   }
   return(SR.EV)
+}
+
+seq.Lynn.EV <- function(tr, v, goal, stepsleft, betap, winM, loseM){
+  library(matrixcalc)
+  Lynn.EV <- rep(0,length(v))   # Initialize eventual predictions of EV
+  tridx   <- 1                  # Initialize indexing variable to fill SR.EV
+  ntilde  <- matrix(0,20,20)    # Initialize tally of transitions
+  Ahat    <- matrix(0,20,20)    # Initialize empty estimated transition matrix
+  
+  for(tri in 1:max(tr)){
+    vcur <- v[tr==tri]    # Select current episode of node experiences
+    ## Perform EV estimate for first node
+    # Get initial state vector
+    I <- rep(0,20); I[vcur[1]] <- 1
+    # Transition matrix with goal state as absorbing
+    Ahat.goal <- Ahat
+    Ahat.goal[goal[tridx],] = 0 
+    hitVec <- rep(0,15) #vector of hitting chances
+    for(s in stepsleft[tridx]:1){#maybe :1?
+      hitC <- I %*% matrix.power(Ahat.goal, s)
+      hitVec[s] <- hitC[goal[tridx]]
+    }
+    Lynn.EV[tridx] <- sum(hitVec)*winM + (1-sum(hitVec)) * loseM
+    tridx <- tridx+1
+    
+    for(ep in 2:length(vcur)){
+      ## Update ntilde and Ahat
+      Pdt <- sapply((ep-1):1, function(dt){exp(-betap*dt) / sum(sapply((ep-1):1, function(sdt){exp(-betap*sdt)}))})
+      for(epdt in 1:(ep-1)){
+        ntilde[vcur[epdt],vcur[ep]] <- ntilde[vcur[epdt],vcur[ep]] + Pdt[epdt]
+        Ahat[vcur[epdt],] <- ntilde[vcur[epdt],] / sum(ntilde[vcur[epdt],])
+      }
+      
+      ## Get Lynn EV
+      # Get initial state vector
+      I <- rep(0,20); I[vcur[ep]] <- 1
+      # Transition matrix with goal state as absorbing
+      Ahat.goal <- Ahat
+      Ahat.goal[goal[tridx],] = 0 
+      hitVec <- rep(0,15) #vector of hitting chances
+      for(s in stepsleft[tridx]:1){#maybe :1?
+        hitC <- I %*% matrix.power(Ahat.goal, s)
+        hitVec[s] <- hitC[goal[tridx]]
+      }
+      Lynn.EV[tridx] <- sum(hitVec)*winM + (1-sum(hitVec)) * loseM
+      if(Lynn.EV[tridx] > 5){browser()}
+      tridx <- tridx+1
+    }
+  }
+  return(list(Ahat=Ahat, Lynn.EV=Lynn.EV))
+}
+
+get.opt.choice <- function(tr, v, goal, stepsleft, tMat, winM, loseM){
+  opt.EV <- rep(0, length(v))
+  for(toti in 1:length(v)){
+    I <- rep(0,20); I[v[toti]]<-1
+    if(stepsleft[toti]==0|v[toti]==goal[toti]){
+      if(v[toti]==goal[toti]){opt.EV[toti]<-winM}else{opt.EV[toti]<-loseM}
+    }else{
+      hitVec <- rep(0,15)
+      tMat.goal <- tMat
+      tMat.goal[goal[toti],] <- 0
+      for(s in stepsleft[toti]:1){
+        hitC <- I %*% matrix.power(tMat.goal, s)
+        hitVec[s] <- hitC[goal[toti]]
+      }
+      opt.EV[toti] <- sum(hitVec)*winM + (1-sum(hitVec)) * loseM
+    }
+  }
+  opt.choice <- as.numeric(opt.EV>0)
+  return(opt.choice)
+}
+
+true.opt.choice <- function(tr, v, goal, stepsleft, tMat, winM, loseM){
+  opt.EV <- rep(0, length(v))
+  tridx <- 1
+  for(tri in 1:max(tr)){
+    curBet <- 5
+    tMat.goal <- tMat
+    tMat.goal[goal[tridx],] <- 0
+    curV <- v[tr==tri]
+    for(i in 1:length(curV)){
+      if(stepsleft[tridx]==0 & v[tridx]!=goal[tridx]){
+        opt.EV[tridx] <- loseM
+        tridx <- tridx + 1
+      }else if(v[tridx] == goal[tridx]){
+        opt.EV[tridx] <- winM
+        tridx <- tridx + 1
+      }else{
+        stateVec <- rep(0, 20)
+        stateVec[v[tridx]] <- 1
+        hitC <- rep(0,stepsleft[tridx])
+        for(s in stepsleft[tridx]:1){
+          hitC[s] <- (stateVec %*% matrix.power(tMat.goal,s))[goal[tridx]]
+        }
+        betEV <-  sum(hitC)*winM + (1-sum(hitC))*loseM
+        remEV <- 0
+        if(curBet>0){
+          remEV <- (1-sum(hitC)) * -(loseM)
+        }
+        if(betEV > remEV){
+          curBet <- curBet+1
+          opt.EV[tridx] <- betEV
+          tridx <- tridx+1
+        }else if(betEV<remEV){
+          curBet <- max(curBet-1,0)
+          opt.EV[tridx] <- betEV-remEV
+          tridx <- tridx+1
+        }else if(betEV==remEV){
+          browser()
+        }
+      }
+    }
+  }
+  opt.choice <- as.numeric(opt.EV>0)
+  return(opt.choice)
 }

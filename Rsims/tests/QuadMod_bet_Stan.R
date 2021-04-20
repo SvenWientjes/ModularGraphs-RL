@@ -16,6 +16,7 @@ sapply(paste0('src/',list.files('src/')), source)
 
 # Define point multiplier for winning
 winM   <- 5
+loseM  <- -1
 startP <- 5
 nVisit <- 15
 nTr    <- 100
@@ -845,4 +846,37 @@ HBI2fit <- stan(
   verbose = T,
   save_warmup=F
 )
+
+## Choices based on learning models (SREV and LynnEV) ----
+noiseL <- 0              # Noise added after sampling bernoulli trials
+O      <- 3              # Effects: intercept, SR.EV, stepsleft
+lrEq   <- c(-0.3, 1.5, 0) # True regression weights in Beta
+nPP    <- 30             # Number of participants
+ct     <- 0.6            # Decaying percept of negative outcome
+lr     <- 0.05           # SR update learning rate
+gamm   <- 0.95           # Successor Degree
+betap  <- 0.3
+
+learnSR.exp <- full.exp[pp %in% 1:nPP][, pol.type := if(trtype=='deep'){'deep'}else{'bottleneck'}, by=.(pp,tr,stepsleft)
+                        #][,EV.reg:=EVregMat[sym.it==sym.id & pol.id==pol.type & steps==stepsleft]$EV,by=.(pp,tr,stepsleft)
+                        ][,SR.EV   := seq.SR.EV(tr,v,goal,stepsleft,lr,gamm,ct,winM), by=pp
+                        ][,Lynn.EV := seq.Lynn.EV(tr,v,goal,stepsleft,betap,winM,loseM)$Lynn.EV, by=pp
+                        ][!is.na(opt.choice)
+                        ][,stepsleft:=stepsleft+1
+                        ][,SR.choice:=rbinom(1,1,boot::inv.logit(lrEq%*%c(1,SR.EV,stepsleft))),by=.(pp,tr,stepsleft)]
+# Plot EV time courses
+plot(learnSR.exp[pp==1,SR.EV], type='l', col='blue')
+lines(learnSR.exp[pp==1,Lynn.EV], col='orange')
+lines(learnSR.exp[pp==1,EV.reg],col='green')
+
+# Inspect EV correlations
+cor(cbind(learnSR.exp[pp==2,SR.EV],learnSR.exp[pp==2,Lynn.EV],learnSR.exp[pp==2,EV.reg]))
+
+# Inspect choices made
+ggplot(learnSR.exp[,sum(SR.choice==1)/.N,by=.(sym.id,pol.type,stepsleft)][,list(sym.id,pol.type,stepsleft,V1)]) +
+  geom_line(aes(x=stepsleft, y=V1, col=sym.id)) +
+  geom_point(aes(x=stepsleft, y=V1, col=sym.id)) +
+  facet_grid(pol.type~sym.id)
+
+
 
