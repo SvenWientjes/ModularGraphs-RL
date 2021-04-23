@@ -42,7 +42,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.49497475"
-     inkscape:cx="490.45188"
+     inkscape:cx="162.15231"
      inkscape:cy="729.11081"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
@@ -61,7 +61,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -104,21 +104,5 @@
          x="216.50876"
          y="97.352966"
          style="font-size:8.81944466px;stroke-width:0.26458332">You are looking for:</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.76111126px;line-height:1.25;font-family:arial;-inkscape-font-specification:arial;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;text-anchor:middle;text-align:center;"
-       x="253.64035"
-       y="214.81544"
-       id="text1374"><tspan
-         sodipodi:role="line"
-         id="tspan1372"
-         x="202.32996"
-         y="214.81544"
-         style="font-size:8.81944466px;stroke-width:0.26458332;text-anchor:middle;text-align:center;">Press &lt;space&gt; to collect it</tspan><tspan
-         sodipodi:role="line"
-         x="202.32996"
-         y="225.83975"
-         style="font-size:8.81944466px;stroke-width:0.26458332;text-anchor:middle;text-align:center;"
-         id="tspan1376">or to stop early</tspan></text>
   </g>
 </svg>

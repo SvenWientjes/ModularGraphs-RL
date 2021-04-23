@@ -20,6 +20,9 @@
 
     /* Create timeline */
     var timeline = [];
+
+    // Create variable for coin-tracking
+    var newcoin = true;
     
     /* Define welcome screen */
     var welcome = {
@@ -99,11 +102,31 @@
 
     mbendf = 'downend';
 
+    // Missed punishment feedback if last trial is missed
+    var lastmiss = {
+        type: 'html-keyboard-response',
+        stimulus: FixStr,
+        on_load: function(){
+            FixationC(miss, trBet);
+            miss=false;
+        },
+        choices: jsPsych.NO_KEYS,
+        trial_duration: 1000
+    }
+
+    // Conditional lastmiss
+    var conditionallastmiss = {
+        timeline: [lastmiss],
+        conditional_function: function(){
+            return miss;
+        }
+    }
+
     // Message at the end of a miniblock
     var blockend = {
         type: 'html-keyboard-response',
-        stimulus: function(){return miniblockFb(mbendf)},
-        choices: [32]
+        stimulus: function(){return miniblockFb(mbendf)}
+        //choices: [32]
     }
 
     // Feedback w.r.t Points
@@ -117,8 +140,8 @@
             var mbPunish = jsPsych.data.get().last(2).values()[0].mbPunish;
             return fbScreen(nSteps, nGoals, trRew, trLeft, total_reward, mbPunish);
             
-        },
-        choices: [32]
+        }
+        //choices: [32]
     }
 
     // Define a miniblock!
@@ -262,7 +285,7 @@
                     trBet = 0;                             // Reset miniblock-bet for next miniblock
                     trRew = 0;                             // Reset miniblock-reward for next miniblock
                     mbPunish = 0;                          // Reset miniblock-punishment for next miniblock
-                    miss = false;                          // Prevent carryover misses
+                    miss = true;                           // Prevent carryover misses in lastmiss
                     jsPsych.endCurrentTimeline();
                 };
                 if (data.key_press == null && data.nSteps == 14 && data.node != data.goalnode) { //No response - ending
@@ -277,7 +300,7 @@
                     trBet = 0;                             // Reset miniblock-bet for next miniblock
                     trRew = 0;                             // Reset miniblock-reward for next miniblock
                     mbPunish = 0;                          // Reset miniblock-punishment for next miniblock
-                    miss = false;                          // Prevent carryover misses
+                    miss = true;                           // Prevent carryover misses in lastmiss
                 };
             }
         }
@@ -290,6 +313,7 @@
         // Push into timeline 
         timeline.push(goalcue);
         timeline.push(miniblock);
+        timeline.push(conditionallastmiss);
         timeline.push(blockend);
         timeline.push(pointfb);
     } 
