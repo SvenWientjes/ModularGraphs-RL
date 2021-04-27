@@ -653,3 +653,54 @@ goal2sub <- paste0('var goallist = [',paste(sapply(1:nPP, function(p){paste0('['
 write1sub <- file('data/goallist.js')
 writeLines(goal2sub, write1sub)
 close(write1sub)
+
+################################################################################
+# Get pairs for bottleneck-hallway teleporter question #
+probeQs <- list(a = c(15,1), b = c(5,6), c = c(10,11))
+allMat <- matrix(0,nrow=1,ncol=2)
+# All deep-deep
+for(i in 1:3){
+  curMat <- matrix(nrow=1, ncol=2)
+  curMat[1,] <- probeQs[[i]]
+  # Pick deep-deep transition per cluster
+  for(j in 1:2){
+    # Which cluster we draw from
+    cur.c <- names(idmap.bt)[sapply(idmap.bt, function(nd){curMat[1,j] %in% nd})]
+    # Choose a deep node
+    one.d <- sample(idmap.d[[cur.c]],1)
+    # Check which rows already have this node
+    #which(allMat[,1]==one.d | allMat[,2]==one.d)
+    # Sample the next node
+    two.d <- sample(idmap.d[[cur.c]][which(idmap.d[[cur.c]]!=one.d)],1)
+    # If the pair already exists, sample the other one
+    if(any(allMat[,1]==one.d & allMat[,2]==two.d | allMat[,1]==two.d & allMat[,2]==one.d)){
+      two.d <- idmap.d[[cur.c]][which(idmap.d[[cur.c]]!=one.d & idmap.d[[cur.c]]!=two.d)]
+    }
+    # Add samples to current and overall counters
+    allMat <- rbind(allMat, c(one.d, two.d))
+    curMat <- rbind(curMat, c(one.d, two.d))
+  }
+  probeQs[[i]] <- curMat
+}
+# All bottleneck-deep
+for(i in 1:3){
+  curMat <- probeQs[[i]]
+  for(j in 1:2){
+    # Which cluster we draw from
+    cur.c <- names(idmap.bt)[sapply(idmap.bt, function(nd){curMat[1,j] %in% nd})]
+    # Get the bottleneck node not part of the cluster transition
+    fakeBn <- idmap.bt[[cur.c]][which(idmap.bt[[cur.c]] != curMat[1,j])]
+    # Connect with deep node (not yet sampled twice)
+    el.deeps <- idmap.d[[cur.c]][which(sapply(idmap.d[[cur.c]], function(dn){sum(allMat==dn)}) == 1)]
+    el.deeps <- el.deeps[!sapply(el.deeps, function(ed){ed %in% curMat})]
+    conDeep  <- el.deeps[sample(1:length(el.deeps),1)]
+    # Add samples to current and overall counters
+    allMat <- rbind(allMat, c(fakeBn, conDeep))
+    curMat <- rbind(curMat, c(fakeBn, conDeep))
+  }
+  probeQs[[i]] <- rbind(probeQs[[i]], curMat[-c(1,2,3),])
+}
+
+
+
+
