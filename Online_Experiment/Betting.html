@@ -8,8 +8,10 @@
         <script src="jspsych-6.2.0/plugins/jspsych-survey-text.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-fullscreen.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-canvas-keyboard-response.js"></script>
-        <script src="js/screens.js"></script> <!-- Experiment defining variables -->
+        <script src="js/FeedbackScreens.js"></script> <!-- Experiment defining variables -->
         <script src="js/StimulusCanvas.js"></script>
+        <!--<script src="js/TeleportQuestion.js"></script> -->
+        <script src="js/stimLists.js"></script>
         <script src="js/trajectories.js"></script> <!-- Experiment defining variables -->
         <script src="js/goallist.js"></script> <!-- Experiment defining variables -->
         <script src="js/FixationCanvas.js"></script> 
@@ -60,8 +62,9 @@
     timeline.push(survey_trial);
     
     // Define which trajectories to follow (pregenerated participant / experiments)
-    var trialorder = trajectories[1];
-    var goalorder = goallist[1];
+    var ppn = 1;
+    var trialorder = trajectories[ppn];
+    var goalorder = goallist[ppn];
 
     // Get rooms and goals into shuffled order
     var idxArray = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14];
@@ -96,7 +99,7 @@
         },
         choices: jsPsych.NO_KEYS,
         trial_duration: function(){
-            return [250,500,750,1000,1250,1500,1750,2000][Math.floor(Math.random()*8)]
+            return [500,750,1000][Math.floor(Math.random()*3)]
         }
     }
 
