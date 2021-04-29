@@ -9,7 +9,7 @@ var btnStr = ['<button class="image-btn-sven" style = "position:absolute; left:1
               '<button class="image-btn-sven" style = "position:absolute; left:1680px; top: 490px"><img src="img/teleport.svg" width="95" height="95" /></button>'];
 
 // Draw all the stimuli for the teleportation question
-function TeleC() {
+function TeleC(telIdx) {
     var canvas = document.getElementById('ChoiceCv');
     ctx = canvas.getContext("2d");
 
@@ -28,9 +28,9 @@ function TeleC() {
     // Loop over creating room and hallway images
     for(var i=0; i<5; i++){
         imgs1[i] = new Image(); //New image element 
-        imgs1[i].src = rooms[testAr[0][0][i][0]];
+        imgs1[i].src = rooms[telelist[ppn][telIdx][i][0]];
         imgs2[i] = new Image();
-        imgs2[i].src = rooms[testAr[0][0][i][1]];
+        imgs2[i].src = rooms[telelist[ppn][telIdx][i][1]];
         if(i==4){
             imgs1[4].onload = function(){
                 for(var j=0;j<5;j++){

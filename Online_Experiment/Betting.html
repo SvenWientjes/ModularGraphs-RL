@@ -5,17 +5,20 @@
         <script src="jspsych-6.2.0/jspsych.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-html-keyboard-response.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-image-keyboard-response.js"></script>
+        <script src="jspsych-6.2.0/plugins/jspsych-html-button-response.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-survey-text.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-fullscreen.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-canvas-keyboard-response.js"></script>
         <script src="js/FeedbackScreens.js"></script> <!-- Experiment defining variables -->
         <script src="js/StimulusCanvas.js"></script>
-        <!--<script src="js/TeleportQuestion.js"></script> -->
+        <script src="js/telelist.js"></script>
+        <script src="js/TeleportQuestion.js"></script>
         <script src="js/stimLists.js"></script>
         <script src="js/trajectories.js"></script> <!-- Experiment defining variables -->
         <script src="js/goallist.js"></script> <!-- Experiment defining variables -->
         <script src="js/FixationCanvas.js"></script> 
         <link href="jspsych-6.2.0/css/jspsych.css" rel="stylesheet" type="text/css">
+        <link href="css/custom_button.css" rel="stylesheet" type="text/css">
     </head>
     <body></body>
     <script>
@@ -148,7 +151,7 @@
     }
 
     // Define a miniblock!
-    for (var i=0; i<2; i++) {
+    for (var i=0; i<1; i++) {
         // Get images in array in order of presentation on trial 
         var node_imgs = [];
         for (var j=0; j<15; j++) { //iterate over trialorder to add stimuli
@@ -320,6 +323,23 @@
         timeline.push(blockend);
         timeline.push(pointfb);
     } 
+
+    // Teleporter questionnaire
+    var teleChoice = {
+        type: 'html-button-response',
+        stimulus: teleStr,
+        choices: ['1','2','3','4','5'],
+        button_html: btnStr,
+        on_load: function(){
+            TeleC(0);
+        },
+        on_finish: function(data){
+            data.teledecision = telelist[ppn][0][data.button_pressed];
+            data.options = telelist[ppn][0];
+        }
+    }
+
+    timeline.push(teleChoice);
 
     // Start the experiment
     jsPsych.init({
