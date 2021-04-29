@@ -24,7 +24,7 @@ function TeleC(telIdx) {
     var imgs2 = [];// Array for loading bottom images
     // Hallway image (in between pairs of rooms)
     hallImg = new Image();
-    hallImg.src = 'img/hallway.png'
+    hallImg.src = 'img/Hallway.png'
     // Loop over creating room and hallway images
     for(var i=0; i<5; i++){
         imgs1[i] = new Image(); //New image element 
