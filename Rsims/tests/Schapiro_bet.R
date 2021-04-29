@@ -720,7 +720,7 @@ teleWrite <- paste0('var telelist = [',
   paste('[',sapply(1:nPP, function(Pns){
     paste('[',sapply(1:3, function(comb){
       paste('[',sapply(1:5, function(opt){
-        paste(allProbeQs[[Pns]][[comb]][opt,], collapse=', ')
+        paste(allProbeQs[[Pns]][[comb]][opt,]-1, collapse=', ')
       }),']', sep='', collapse=', ')
     }),']', collapse=', ',sep='')
   }), ']', collapse=', ',sep=''),
