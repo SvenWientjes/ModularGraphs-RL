@@ -16,7 +16,8 @@ function TeleC(telIdx) {
     // Make background black
     ctx.beginPath();
     ctx.rect(0, 0, 1920, 1080);
-    ctx.fillStyle = " #17202a ";
+    //ctx.fillStyle = " #17202a ";
+    ctx.fillStyle = 'black'
     ctx.fill();
 
     ctx.strokeStyle = "#06b72e"; // Arrow color
@@ -83,7 +84,7 @@ function TeleC(telIdx) {
         }
     }
     // Display text on top
-    ctx.font = '30px Arial';
+    ctx.font = '20px VideoGame';
     ctx.textAlign = 'center';
     ctx.fillStyle = 'white';
     ctx.fillText('Use the mouse to indicate in which hallway you would like to place the teleporter.', canvas.width/2, 150);

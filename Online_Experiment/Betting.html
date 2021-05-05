@@ -6,11 +6,16 @@
         <script src="jspsych-6.2.0/plugins/jspsych-html-keyboard-response.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-image-keyboard-response.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-html-button-response.js"></script>
+        <script src="jspsych-6.2.0/plugins/jspsych-instructions.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-survey-text.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-fullscreen.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-canvas-keyboard-response.js"></script>
-        <script src="js/FeedbackScreens.js"></script> <!-- Experiment defining variables -->
         <script src="js/StimulusCanvas.js"></script>
+        <script src="js/EntryScreen.js"></script>
+        <script src="js/WelcomeScreen.js"></script>
+        <script src="js/FeedbackScreen.js"></script>
+        <script src="js/InstructionScreen.js"></script>
+        <script src="js/MiniblockEnd.js"></script>
         <script src="js/telelist.js"></script>
         <script src="js/TeleportQuestion.js"></script>
         <script src="js/stimLists.js"></script>
@@ -18,34 +23,55 @@
         <script src="js/goallist.js"></script> <!-- Experiment defining variables -->
         <script src="js/FixationCanvas.js"></script> 
         <link href="jspsych-6.2.0/css/jspsych.css" rel="stylesheet" type="text/css">
-        <link href="css/custom_button.css" rel="stylesheet" type="text/css">
+        <link href="css/custom_styles.css" rel="stylesheet" type="text/css">
     </head>
     <body></body>
     <script>
 
-    /* Create timeline */
-    var timeline = [];
-
-    // Create variable for coin-tracking
-    var newcoin = true;
+    /* -------- EXPERIMENT DEFINING VARIABLES -------- */
+    var timeline = [];   // Timeline
+    var newcoin = true;  // Coin-responded checker
+    var ppn = 1;         // Participant Nr
+    var nTrs = 1;        // How many trials to display? (max 100)
+    var trialorder = trajectories[ppn]; // Index for trials
+    var goalorder = goallist[ppn];      // Index for goals
+    var total_reward = 0;       // Beginning reward
+    var next_total_reward = 0;  // Carry reward through mb-feedback
+    var miss = false;           // Index if response was omitted (fixation feedback)
+    var mbendf = 'downend';     // Miniblock-feedback
+    var condLMidx=0;            // Was the last trial response omitted?
+    var waspressed = 0;         // Previous choice in choosing entry rooms
+    var entryQlist = [[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]]; // Definition of entry room presentations
+    entryQlist = jsPsych.randomization.shuffle(entryQlist);      // Shuffle of trial order
+    entryQlist = entryQlist.map(jsPsych.randomization.shuffle);  // Shuffle of room ordering within trial
     
-    /* Define welcome screen */
+    // Get rooms and goals into shuffled order
+    var idxArray = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14];
+    var shfIdx = jsPsych.randomization.shuffle(idxArray);
+    var rooms = [];
+    shfIdx.forEach(i => rooms.push(roomsdef[i]));
+    var goals = [];
+    shfIdx.forEach(i => goals.push(goalsdef[i]));
+    console.log(rooms);
+    // Generate array of preloading images
+    var pre_load_stimuli = ['img/Hallway.png', rooms, goals];
+
+    /* -------- Define screens and timeline order -------- */
+    // Define welcome screen
     var welcome = {
         type: "html-keyboard-response",
-        stimulus: "Welcome to the experiment. Press any key to begin."
+        stimulus: welcStr,
     };
 
-    /* Add welcome screen to timeline */
-    timeline.push(welcome);
-
-    var instructions = {
+    // Define intro to questions screen
+    var qIntro = {
         type: "html-keyboard-response",
-        stimulus: "<p>This screen will contain the instructions for the task.</p>"+
-        "<p>We might use multiple instruction screens to properly display the "+
-        "different types of screens (goal, start, feedback, etc) the participant can encounter.</p>"+
-        "<p>We should also instruct them they have to press the spacebar.</p>",
-        post_trial_gap: 2000
+        stimulus: qintStr,
     };
+
+    // Add welcome screen to timeline
+    timeline.push(welcome);
+    timeline.push(qIntro);
 
     var survey_trial = {
         type: 'survey-text',
@@ -60,37 +86,21 @@
         }
     };
 
-    // Add instruction screen to timeline 
-    timeline.push(instructions);
+    var fsIntro = {
+        type: 'html-keyboard-response',
+        stimulus: fsintStr
+    }
+
     timeline.push(survey_trial);
-    
-    // Define which trajectories to follow (pregenerated participant / experiments)
-    var ppn = 1;
-    var trialorder = trajectories[ppn];
-    var goalorder = goallist[ppn];
-
-    // Get rooms and goals into shuffled order
-    var idxArray = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14];
-    var shfIdx = jsPsych.randomization.shuffle(idxArray);
-
-    var rooms = [];
-    shfIdx.forEach(i => rooms.push(roomsdef[i]));
-    var goals = [];
-    shfIdx.forEach(i => goals.push(goalsdef[i]));
-    console.log(rooms);
-
-    // Generate array of preloading images
-    var pre_load_stimuli = ['img/Hallway.png', rooms, goals];
-
-    // Define earned points throughout experiment (will be updated)
-    var total_reward = 0;
-    var miss = false;
+    timeline.push(fsIntro);
 
     // Go fullscreen from here on out
     timeline.push({
         type: 'fullscreen',
         fullscreen_mode: true
     });
+
+    // The instructions!
 
     // Set up the fixation cross
     var fixation = {
@@ -106,8 +116,6 @@
         }
     }
 
-    mbendf = 'downend';
-
     // Missed punishment feedback if last trial is missed
     var lastmiss = {
         type: 'html-keyboard-response',
@@ -115,6 +123,7 @@
         on_load: function(){
             FixationC(miss, trBet);
             miss=false;
+            condLMidx=1;
         },
         choices: jsPsych.NO_KEYS,
         trial_duration: 1000
@@ -131,27 +140,33 @@
     // Message at the end of a miniblock
     var blockend = {
         type: 'html-keyboard-response',
-        stimulus: function(){return miniblockFb(mbendf)}
-        //choices: [32]
+        stimulus: mbendStr,
+        on_load: function(){
+            trBetf = trBet;
+            mbendS(mbendf, total_reward, trBetf);
+            trBet=0;
+        }
     }
 
-    // Feedback w.r.t Points
     var pointfb = {
         type: 'html-keyboard-response',
-        stimulus: function(){
-            var nSteps = jsPsych.data.get().last(2).values()[0].nSteps;
-            var trRew = jsPsych.data.get().last(2).values()[0].trRew;
-            var nGoals = jsPsych.data.get().filter([{decision: 'upgoal'}, {decision: 'downgoal'}]).count();
-            var trLeft = jsPsych.data.get().last(2).values()[0].miniblock;
-            var mbPunish = jsPsych.data.get().last(2).values()[0].mbPunish;
-            return fbScreen(nSteps, nGoals, trRew, trLeft, total_reward, mbPunish);
-            
+        stimulus: FeedbStr,
+        on_load: function(){
+            total_reward = next_total_reward;
+            next_total_reward = 0;
+            trCheckIdx = 2+condLMidx;
+            var nGoals = jsPsych.data.get().filter([{decision: 'upgoal'}, {decision: 'downgoal'}, {decision: 'missgoal'}]).count();
+            var trRewf = jsPsych.data.get().last(trCheckIdx).values()[0].trRew;
+            var trLeft = jsPsych.data.get().last(trCheckIdx).values()[0].miniblock;
+            var mbPunishf = jsPsych.data.get().last(trCheckIdx).values()[0].mbPunish;
+            FeedbackS(nGoals, trRewf, trLeft, mbPunishf);
+            mbPunish = 0;  //Reset mbPunish for next trial
+            condLMidx = 0; //Reset checker if last trial was missed
         }
-        //choices: [32]
     }
 
     // Define a miniblock!
-    for (var i=0; i<1; i++) {
+    for (var i=0; i<nTrs; i++) {
         // Get images in array in order of presentation on trial 
         var node_imgs = [];
         for (var j=0; j<15; j++) { //iterate over trialorder to add stimuli
@@ -167,10 +182,19 @@
 
         // Define the goalcue by getting from corresponding goalorder idx
         var goalcue = {
-            type: 'image-keyboard-response',
-            stimulus_width: 1920,
+            type: 'html-keyboard-response',
+            //stimulus_width: 1920,
             choices: ['z','m'],
-            stimulus: goals[goalorder[i]],
+            stimulus: '<div id="GoalcueDiv" style="margin:0 auto;"><canvas id="GoalcueCv" width="1920" height="1080" style="background:url('+goals[goalorder[i]]+')"></canvas></div>',
+            on_load: function(){
+                var canvas = document.getElementById('GoalcueCv');
+                cst = canvas.getContext("2d");
+                cst.font = '40px VideoGame';
+                cst.textAlign = 'center';
+                cst.fillStyle = 'black';
+                cst.fillText(total_reward, canvas.width/2, 50);
+            }
+            //stimulus: goals[goalorder[i]],
         }
 
         var trial = {
@@ -200,35 +224,31 @@
                 node: function(){return rooms.indexOf(jsPsych.timelineVariable('stimulus', true))}, //node nr determined by idx of rooms
                 goalnode: goalorder[i],
             },
-            on_load: function(){StimC(trBet)},
+            on_load: function(){StimC(trBet, total_reward)},
             on_finish: function(data) {
                 if (data.key_press == 90 && data.node == data.goalnode) { // Bet down on goal
                     trBet = Math.max(trBet,0);             // Do not increase bet by one
                     data.trBet = trBet;                    // Correct current trial bet
-                    total_reward = Math.max(total_reward + trBet,0);   // Increment experiment reward by betted value
-                    data.totRew = total_reward;            // Correct current trial reward
+                    next_total_reward = Math.max(total_reward + trBet,0);
+                    data.totRew = next_total_reward;            // Correct current trial reward
                     trRew = trBet;                         // Track miniblock-reward
                     data.trRew = trRew;                    // Append to trial data
                     mbendf = 'downgoal';
                     data.decision = mbendf;                // Append participant decision to trial data
-                    trBet = 0;                             // Reset miniblock-bet for next miniblock
                     trRew = 0;                             // Reset miniblock-reward for next miniblock
-                    mbPunish = 0;                          // Reset miniblock-punishment for next miniblock
                     miss = false;                          // Prevent carryover misses
                     jsPsych.endCurrentTimeline();
                 };
                 if (data.key_press == 77 && data.node == data.goalnode) { // Bet up on goal
                     trBet = Math.max(trBet+1,0);           // Increase bet by one
                     data.trBet = trBet;                    // Correct current trial bet
-                    total_reward = Math.max(total_reward + trBet,0);   // Increment experiment reward by betted value
-                    data.totRew = total_reward;            // Correct current trial reward
+                    next_total_reward = Math.max(total_reward + trBet,0);
+                    data.totRew = next_total_reward;       // Correct current trial reward
                     trRew = trBet;                         // Track miniblock-reward
                     data.trRew = trRew;                    // Append to trial data
                     mbendf = 'upgoal';
                     data.decision = mbendf;                // Append participant decision to trial data
-                    trBet = 0;                             // Reset miniblock-bet for next miniblock
                     trRew = 0;                             // Reset miniblock-reward for next miniblock
-                    mbPunish = 0;                          // Reset miniblock-punishment for next miniblock
                     miss = false;                          // Prevent carryover misses
                     jsPsych.endCurrentTimeline();
                 };
@@ -245,29 +265,25 @@
                 if (data.key_press == 90 && data.nSteps == 14 && data.node != data.goalnode) { // Stop bet down
                     trBet = Math.max(trBet,0);             // Do not increase bet by one
                     data.trBet = trBet;                    // Correct current trial bet
-                    total_reward = Math.max(total_reward - trBet,0);   // Increment experiment reward down by betted value (lost)
-                    data.totRew = total_reward;            // Correct current trial reward
+                    next_total_reward = Math.max(total_reward - trBet,0);
+                    data.totRew = next_total_reward;       // Correct current trial reward
                     trRew = -trBet;                        // Track miniblock-reward
                     data.trRew = trRew;                    // Append to trial data
                     mbendf = 'downend';
                     data.decision = mbendf;                // Append participant decision to trial data
-                    trBet = 0;                             // Reset miniblock-bet for next miniblock
                     trRew = 0;                             // Reset miniblock-reward for next miniblock
-                    mbPunish = 0;                          // Reset miniblock-punishment for next miniblock
                     miss = false;                          // Prevent carryover misses
                 };
                 if (data.key_press == 77 && data.nSteps == 14 && data.node != data.goalnode) { // Stop bet UP
                     trBet = Math.max(trBet+1,0);           // Increase bet by one
                     data.trBet = trBet;                    // Correct current trial bet
-                    total_reward = Math.max(total_reward - trBet,0);   // Increment experiment reward down by betted value (lost)
-                    data.totRew = total_reward;            // Correct current trial reward
+                    next_total_reward = Math.max(total_reward - trBet,0);   // Increment experiment reward down by betted value (lost)
+                    data.totRew = next_total_reward;       // Correct current trial reward
                     trRew = -trBet;                        // Track miniblock-reward
                     data.trRew = trRew;                    // Append to trial data
                     mbendf = 'upend';
                     data.decision = mbendf;                // Append participant decision to trial data
-                    trBet = 0;                             // Reset miniblock-bet for next miniblock
                     trRew = 0;                             // Reset miniblock-reward for next miniblock
-                    mbPunish = 0;                          // Reset miniblock-punishment for next miniblock
                     miss = false;                          // Prevent carryover misses
                 };
                 if (data.key_press == null && data.nSteps != 14 && data.node != data.goalnode) { //No response given
@@ -282,30 +298,28 @@
                 if (data.key_press == null && data.node == data.goalnode) {//No response to goal node
                     mbPunish = mbPunish - 1;               // Tracks punishment over entire miniblock
                     data.mbPunish = mbPunish;              // Correct current trial punishment
-                    total_reward = Math.max(total_reward + trBet - 1,0);   // Increment experiment reward by betted value
-                    data.totRew = total_reward;            // Correct current trial reward
+                    total_reward = Math.max(total_reward - 1,0);            // Punish total reward
+                    next_total_reward = Math.max(total_reward + trBet,0);   // Increment experiment reward by betted value
+                    data.totRew = next_total_reward;       // Correct current trial reward
                     trRew = trBet;                         // Track miniblock-reward
                     data.trRew = trRew;                    // Append to trial data
                     mbendf = 'missgoal';
                     data.decision = mbendf;                // Append participant decision to trial data
-                    trBet = 0;                             // Reset miniblock-bet for next miniblock
                     trRew = 0;                             // Reset miniblock-reward for next miniblock
-                    mbPunish = 0;                          // Reset miniblock-punishment for next miniblock
                     miss = true;                           // Prevent carryover misses in lastmiss
                     jsPsych.endCurrentTimeline();
                 };
                 if (data.key_press == null && data.nSteps == 14 && data.node != data.goalnode) { //No response - ending
                     mbPunish = mbPunish - 1;               // Tracks punishment over entire miniblock
                     data.mbPunish = mbPunish;              // Correct current trial punishment
-                    total_reward = Math.max(total_reward - trBet - 1,0);   // Decrement experiment reward by betted value
-                    data.totRew = total_reward;            // Correct current trial reward
+                    total_reward = Math.max(total_reward - 1,0);            // Punish total reward
+                    next_total_reward = Math.max(total_reward - trBet,0);   // Decrement experiment reward by betted value
+                    data.totRew = next_total_reward;       // Correct current trial reward
                     trRew = -trBet;                        // Track miniblock-reward
                     data.trRew = trRew;                    // Append to trial data
                     mbendf = 'missend';
                     data.decision = mbendf;                // Append participant decision to trial data
-                    trBet = 0;                             // Reset miniblock-bet for next miniblock
                     trRew = 0;                             // Reset miniblock-reward for next miniblock
-                    mbPunish = 0;                          // Reset miniblock-punishment for next miniblock
                     miss = true;                           // Prevent carryover misses in lastmiss
                 };
             }
@@ -324,22 +338,103 @@
         timeline.push(pointfb);
     } 
 
-    // Teleporter questionnaire
+    // Congratulate on finishing the main experiment
+    // Ask if they saw any room more than others?
+
+    // Create timeline variable for indexing tele questions
+    var teleIdx = [];
+    for (var j=0; j<3; j++) { //iterate over trialorder to add stimuli
+        teleIdx.push({
+            tidx: j
+        });
+    }
+
+    // Prompt for tele questions
+
+    // Screen for tele questions
     var teleChoice = {
         type: 'html-button-response',
         stimulus: teleStr,
         choices: ['1','2','3','4','5'],
         button_html: btnStr,
         on_load: function(){
-            TeleC(0);
+            TeleC(jsPsych.timelineVariable('tidx',true));
         },
         on_finish: function(data){
-            data.teledecision = telelist[ppn][0][data.button_pressed];
-            data.options = telelist[ppn][0];
+            data.teledecision = telelist[ppn][jsPsych.timelineVariable('tidx',true)][data.button_pressed];
+            data.options = telelist[ppn][jsPsych.timelineVariable('tidx',true)];
+        }
+    }
+    var teleWait = {
+        type: 'html-keyboard-response',
+        stimulus: '<canvas id="WaitCv" width="1920" height="1080" style="background-color:black"</canvas>',
+        choices: jsPsych.NO_KEYS,
+        trial_duration: 1000
+    }
+    // Push into timeline
+    var teleblock ={
+        timeline: [teleChoice,teleWait],
+        timeline_variables:teleIdx,
+    }
+    timeline.push(teleblock);
+
+    // Create questions about wing entries
+    // Create timeline variable for indexing entry questions
+    var entryIdx = [];
+    for (var j=0; j<3; j++) { //iterate over trialorder to add stimuli
+        entryIdx.push({
+            eidx: j
+        });
+    }
+
+    // Set up the choice screen
+    var entryChoice1 = {
+        type: 'html-button-response',
+        stimulus: '<canvas id="ChoiceCv" width="1920" height="1080" style="background-color:black"</canvas>',
+        choices: ['1','2','3','4','5'],
+        button_html: function(){
+            return(EntryBtnGen(entryQlist[jsPsych.timelineVariable('eidx',true)], -1));
+        },
+        on_load: function(){
+            EntryC('bub',-1);
+        },
+        on_finish: function(data){
+            data.decision = entryQlist[jsPsych.timelineVariable('eidx',true)][data.button_pressed]
+            data.options = entryQlist[jsPsych.timelineVariable('eidx',true)];
         }
     }
 
-    timeline.push(teleChoice);
+    // Set up the choice screen
+    var entryChoice2 = {
+        type: 'html-button-response',
+        stimulus: '<canvas id="ChoiceCv" width="1920" height="1080" style="background-color:black"</canvas>',
+        choices: ['1','2','3','4'],
+        button_html: function(){
+            waspressed = jsPsych.data.get().last(1).values()[0].button_pressed;
+            return(EntryBtnGen(entryQlist[jsPsych.timelineVariable('eidx',true)], waspressed));
+        },
+        on_load: function(){
+            waspressed = jsPsych.data.get().last(1).values()[0].button_pressed;
+            orderedrooms = entryQlist[jsPsych.timelineVariable('eidx',true)];
+            EntryC(rooms[orderedrooms[waspressed]], waspressed);
+        },
+        on_finish: function(data){
+            if(data.button_pressed >= waspressed){
+                data.button_pressed += 1;
+            }
+            data.decision = entryQlist[jsPsych.timelineVariable('eidx',true)][data.button_pressed]
+            data.options = entryQlist[jsPsych.timelineVariable('eidx',true)];
+        }
+    }
+
+    //Push into timeline
+    var entryblock ={
+        timeline: [entryChoice1, entryChoice2],
+        timeline_variables:entryIdx,
+    }
+    timeline.push(entryblock);
+    
+    // Create drag&drop for graph reconstruction
 
     // Start the experiment
     jsPsych.init({

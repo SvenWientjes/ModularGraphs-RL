@@ -1,9 +1,23 @@
-function StimC(trBet){
+function StimC(trBet, total_reward){
     var canvas = document.getElementById('StimulusCv');
     cst = canvas.getContext("2d");
 
+    // Points on top
+    cst.strokeStyle = 'black';
+    cst.fillStyle = 'black'
+    //ctx.strokeRect(860,0,200,70)
+    cst.beginPath();
+    cst.moveTo(860,0);
+    cst.lineTo(860,70);
+    cst.lineTo(1060,70);
+    cst.lineTo(1060,0);
+    //cst.stroke();
+    cst.font = '40px VideoGame';
+    cst.textAlign = 'center';
+    cst.fillStyle = 'black';
+    cst.fillText(total_reward, canvas.width/2, 50);
+
     // Draw circles
-    
     cst.fillStyle = 'rgba(221, 204, 8, 1)'
     cst.strokeStyle = 'black'
     circStart = 580;
@@ -14,6 +28,8 @@ function StimC(trBet){
         cst.stroke();
         circStart += 40;
     }
+
+    // Listener for adding coins right away
     window.addEventListener('keydown', BetLive);
 }
 
@@ -36,7 +52,7 @@ function BetLive(e){
         window.removeEventListener('keydown', BetLive);
     }else if(newcoin == true && (keyCode == 'z' || keyCode == 'Z')){
         //cst.clearRect(circStart-60,1040,40,40);
-       window.removeEventListener('keydown', UpCheck);
-       window.removeEventListener('keyup', BetLive);
+       window.removeEventListener('keydown', BetLive);
+       window.removeEventListener('keyup', UpCheck);
     }
 }
