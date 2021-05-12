@@ -4,6 +4,7 @@
 library(data.table)
 library(foreach)
 library(doParallel)
+library(matrixcalc)
 ################################################################################
 # Task Parameters
 nTrs <- 100
