@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>My experiment</title>
+        <title>Art Dealer</title>
         <script src="jspsych-6.2.0/jspsych.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-html-keyboard-response.js"></script>
         <script src="jspsych-6.2.0/plugins/jspsych-image-keyboard-response.js"></script>
@@ -14,7 +14,7 @@
         <script src="js/EntryScreen.js"></script>
         <script src="js/WelcomeScreen.js"></script>
         <script src="js/FeedbackScreen.js"></script>
-        <script src="js/InstructionScreen.js"></script>
+        <script src="js/Instructions.js"></script>
         <script src="js/MiniblockEnd.js"></script>
         <script src="js/telelist.js"></script>
         <script src="js/TeleportQuestion.js"></script>
@@ -32,15 +32,19 @@
     var timeline = [];   // Timeline
     var newcoin = true;  // Coin-responded checker
     var ppn = 1;         // Participant Nr
-    var nTrs = 1;        // How many trials to display? (max 100)
+    var nTrs = 3;        // How many trials to display? (max 100)
     var trialorder = trajectories[ppn]; // Index for trials
     var goalorder = goallist[ppn];      // Index for goals
     var total_reward = 0;       // Beginning reward
     var next_total_reward = 0;  // Carry reward through mb-feedback
+    var practice_reward = 0;    // Beginning reward for practice trials
     var miss = false;           // Index if response was omitted (fixation feedback)
     var mbendf = 'downend';     // Miniblock-feedback
     var condLMidx=0;            // Was the last trial response omitted?
     var waspressed = 0;         // Previous choice in choosing entry rooms
+    var trBet = 0;    // One of the loop vars
+    var trRew = 0;    // Variable tracks reward differential per trial within miniblock
+    var mbPunish = 0; // Variable tracks reward punishment for omitted responses
     var entryQlist = [[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]]; // Definition of entry room presentations
     entryQlist = jsPsych.randomization.shuffle(entryQlist);      // Shuffle of trial order
     entryQlist = entryQlist.map(jsPsych.randomization.shuffle);  // Shuffle of room ordering within trial
@@ -54,43 +58,13 @@
     shfIdx.forEach(i => goals.push(goalsdef[i]));
     console.log(rooms);
     // Generate array of preloading images
-    var pre_load_stimuli = ['img/Hallway.png', rooms, goals];
+    var pre_load_stimuli = ['img/Hallway.png', rooms, goals, 'img/coinIllustrate.png', 'img/3coin-illustrate.png',
+                            'img/4coin-illustrate.png', 'img/example-goal.jpg', 'img/fixHallway.png', 'img/omitHallway.png'];
 
-    /* -------- Define screens and timeline order -------- */
-    // Define welcome screen
-    var welcome = {
-        type: "html-keyboard-response",
-        stimulus: welcStr,
-    };
-
-    // Define intro to questions screen
-    var qIntro = {
-        type: "html-keyboard-response",
-        stimulus: qintStr,
-    };
-
-    // Add welcome screen to timeline
+    /* -------- Define timeline order of instructions etc -------- */
+    // Add welcome screens to timeline
     timeline.push(welcome);
     timeline.push(qIntro);
-
-    var survey_trial = {
-        type: 'survey-text',
-        questions: [
-            {prompt: "How old are you?", name: 'Age'}, 
-            {prompt: "Where were you born?", name: 'BirthLocation'},
-            {prompt: "What is your participant number?", name: 'Ppn'}
-        ],
-        on_finish: function(data) {
-            pResponses = JSON.parse(data.responses);
-            var PN = parseInt(pResponses.Ppn);
-        }
-    };
-
-    var fsIntro = {
-        type: 'html-keyboard-response',
-        stimulus: fsintStr
-    }
-
     timeline.push(survey_trial);
     timeline.push(fsIntro);
 
@@ -100,22 +74,52 @@
         fullscreen_mode: true
     });
 
-    // The instructions!
+    timeline.push(instr1);
 
-    // Set up the fixation cross
-    var fixation = {
+    // First Practice Trial (win)
+    var pracInstr1 = {
         type: 'html-keyboard-response',
-        stimulus: FixStr,
-        on_load: function(){
-            FixationC(miss, trBet);
-            miss=false;
-        },
-        choices: jsPsych.NO_KEYS,
-        trial_duration: function(){
-            return [500,750,1000][Math.floor(Math.random()*3)]
-        }
+        stimulus: prac1instr,
+        choices: ['m']
     }
 
+    // Practice trial
+    var practicetrial = {
+        type: 'html-keyboard-response',
+        trial_duration: 1500,
+        //stimulus_width: 1920,
+        choices: ['z','m'], //down, up,
+        response_ends_trial: false,
+        stimulus: function(){var html='<div id="StimulusDiv" style="margin:0 auto;">';
+            html+='<canvas id="StimulusCv" width="1920" height="1080" style="background:url('+jsPsych.timelineVariable('stimulus',true)+')"></canvas></div>';
+            return html;}, //node_imgs in order determined by trialorder
+        on_load: function(){StimC(trBet, practice_reward)}
+    }
+
+    var winOrder = [0,1,2,3,4];
+    var loseOrder = [0,1,2,3,1];
+    var winPractice = [];
+    var losePractice = [];
+    for (var j=0; j<5; j++) { //iterate over trialorder to add stimuli
+        winPractice.push({
+            stimulus: pracRooms[winOrder[j]],
+            trialidx: j
+        });
+        losePractice.push({
+            stimulus: pracRooms[loseOrder[j]],
+            trialidx: j
+        });
+    }
+
+    var winPracBlock = {
+            timeline: [fixation, practicetrial],
+            timeline_variables: winPractice,
+    }
+
+    timeline.push(pracInstr1);
+    timeline.push(winPracBlock)
+
+    /* -------- Define screens and timeline order of main experiment -------- */
     // Missed punishment feedback if last trial is missed
     var lastmiss = {
         type: 'html-keyboard-response',
@@ -148,6 +152,7 @@
         }
     }
 
+    // The Office - full feedback after every job
     var pointfb = {
         type: 'html-keyboard-response',
         stimulus: FeedbStr,
@@ -175,10 +180,6 @@
                 trialidx: j
             });
         }
-
-        var trBet = 0;
-        var trRew = 0;    // Variable tracks reward differential per trial within miniblock
-        var mbPunish = 0; // Variable tracks reward punishment for omitted responses
 
         // Define the goalcue by getting from corresponding goalorder idx
         var goalcue = {
@@ -434,8 +435,6 @@
     }
     timeline.push(entryblock);
     
-    // Create drag&drop for graph reconstruction
-
     // Start the experiment
     jsPsych.init({
         timeline: timeline,

@@ -9,3 +9,6 @@ var goalsdef = ['img/Balloon_goal.png', 'img/Basket_goal.png', 'img/Book_goal.pn
 'img/Clipboard_goal.png', 'img/Floppy_goal.png', 'img/Fryingpan_goal.png', 'img/Jar_goal.png',
 'img/Lightbulb_goal.png', 'img/Mug_goal.png', 'img/Ovenmitt_goal.png', 'img/Soapdispenser_goal.png',
 'img/Toaster_goal.png', 'img/Toiletpaper_goal.png'];
+
+// List of room images for practice trials
+var pracRooms = ['img/coinIllustrate.png', 'img/Calculator-prac.png', 'img/Iron-prac.png', 'img/Lantern-prac.png', 'img/Pot-prac.png'];

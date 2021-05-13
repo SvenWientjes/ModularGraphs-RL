@@ -44,3 +44,18 @@ function FixationC(miss, trBet){
 
 var FixStr = '<div id="FixationDiv" style="margin:0 auto;">'+
 '<canvas id="FixationCv" width="1920" height="1080" style="background:url(img/Hallway.png)"></canvas></div>';
+
+/* ---- JSpsych Trial Variables ---- */
+// Set up the fixation cross
+var fixation = {
+    type: 'html-keyboard-response',
+    stimulus: FixStr,
+    on_load: function(){
+        FixationC(miss, trBet);
+        miss=false;
+    },
+    choices: jsPsych.NO_KEYS,
+    trial_duration: function(){
+        return [500,750,1000][Math.floor(Math.random()*3)]
+    }
+}

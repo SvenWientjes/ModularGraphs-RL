@@ -1,6 +1,3 @@
-//var welcStr = '<div id="WelcomeDiv" style="margin:0 auto;" style="font-family: VideoGame;">'+
-//'<canvas id="WelcomeCv" width="1920" height="1080"</canvas></div>';
-
 var welcStr = '<p >Welcome to the experiment. Press any key to continue.</p><p style="font-family:VideoGame;font-size:10%;">.</p>'
 var qintStr = '<p style="width:50%; margin-left:auto;margin-right:auto">Before the start of the experiment, we would like to ask you some questions. '+
               'We process all personal data in a secure way, but if you do not feel comfortable '+
@@ -15,19 +12,35 @@ var fsintStr = '<p style="width:50%; margin-left:auto;margin-right:auto">For the
                ' monitor you would like to use during the experiment, before entering fullscreen.</p>'+
                '<p>Press any key to continue.</p>'
 
-function welcS(){
-    var canvas = document.getElementById('WelcomeCv');
-    ctx = canvas.getContext("2d");
+/* ---- JSpsych Trial Variables ---- */
+// Define welcome screen
+var welcome = {
+    type: "html-keyboard-response",
+    stimulus: welcStr,
+};
 
-    // Make background black
-    ctx.beginPath();
-    ctx.rect(0, 0, 1920, 1080);
-    ctx.fillStyle = " black ";
-    ctx.fill();
+// Define intro to questions screen
+var qIntro = {
+    type: "html-keyboard-response",
+    stimulus: qintStr,
+};
 
-    // Display text in center
-    ctx.font = '30px VideoGame';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = 'white';
-    ctx.fillText('Welcome to the experiment. Press any key to begin.', canvas.width/2, canvas.height/2);
+// Define survey to check demographics
+var survey_trial = {
+    type: 'survey-text',
+    questions: [
+        {prompt: "How old are you?", name: 'Age'}, 
+        {prompt: "Where were you born?", name: 'BirthLocation'},
+        {prompt: "What is your participant number?", name: 'Ppn'}
+    ],
+    on_finish: function(data) {
+        pResponses = JSON.parse(data.responses);
+        var PN = parseInt(pResponses.Ppn);
+    }
+};
+
+// Define instructions before going fullscreen
+var fsIntro = {
+    type: 'html-keyboard-response',
+    stimulus: fsintStr
 }
