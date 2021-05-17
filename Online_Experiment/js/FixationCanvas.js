@@ -59,3 +59,24 @@ var fixation = {
         return [500,750,1000][Math.floor(Math.random()*3)]
     }
 }
+
+// Show another fixation if last response is missed - for omission feedback
+var lastmiss = {
+    type: 'html-keyboard-response',
+    stimulus: FixStr,
+    on_load: function(){
+        FixationC(miss, trBet);
+        miss=false;
+        condLMidx=1;
+    },
+    choices: jsPsych.NO_KEYS,
+    trial_duration: 1000
+}
+
+// Conditional display
+var conditionallastmiss = {
+    timeline: [lastmiss],
+    conditional_function: function(){
+        return miss;
+    }
+}

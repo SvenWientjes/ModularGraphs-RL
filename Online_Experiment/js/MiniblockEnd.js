@@ -61,3 +61,15 @@ function mbendS(mbend, total_reward, trBetf){
         ctx.fillText(lines[i], x, y+i*lineheight);
     }
 }
+
+/* ---- JSpsych Trial Variables ---- */
+// Message at the end of a miniblock
+var blockend = {
+    type: 'html-keyboard-response',
+    stimulus: mbendStr,
+    on_load: function(){
+        trBetf = trBet;
+        mbendS(mbendf, total_reward, trBetf);
+        trBet=0;
+    }
+}

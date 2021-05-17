@@ -21,9 +21,11 @@ var instr2s = '<div id="InStruct" style="background-color:black; height:100vh; w
               'display:flex; align-items:center; justify-content:space-between; flex-direction:column;">'+
                 '<p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw; margin-top:auto; margin-bottom:auto;">'+
                     'During the experiment, you will assume the role of an art dealer. You will perform in total 100 jobs. Every job sends you into an'+
-                    ' art gallery, where you will have to look for a specific painting. The desired painting will be shown at the start of that job. You'+
+                    ' art gallery, where you will have to look for a specific painting. This target painting will be shown at the start of that job. You'+
                     ' can never be sure if you will find the painting in time. Every job you will have time to inspect a total of 15 paintings. As soon as'+
                     ' you find the target painting, you will receive a payment. If you do not find the target painting during the job, you will receive a fine.'+
+                    ' The total of all payments and fines are tracked throughout the experiment as "points". At the end of the experiment, you will be paid 10 '+
+                    'cents for each point.'+
                 '</p>'+
                 '<div style="display:flex; min-width:100vw; justify-content:space-between; align-items: flex-end">'+
                     '<p style="color:white; font-family:VideoGame; font-size:25px;">'+
@@ -41,8 +43,9 @@ var instr2s = '<div id="InStruct" style="background-color:black; height:100vh; w
 var showgoalcue = '<div id="InStruct" style="background-color:black; height:100vh; width:100vw; margin:0 auto;'+
                    'position:absolute; top:0;left:0; display:flex; align-items:center; justify-content:space-between; flex-direction:column;">'+
                     '<p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw; margin-top:auto; margin-bottom:auto;">'+
-                        'At the start of each job, you will be shown which painting you are looking for. All paintings are common objects that '+
-                        'you might encounter in your daily life. The goal will be displayed in a gold border similar to this:'+
+                        'At the start of each job, you will be shown which painting you are looking for. This target painting can be different for every job. '+
+                        'All paintings are common objects that you might encounter in your daily life. The target painting will be displayed in a gold border'+
+                        '  similar to this:'+
 
                     '</p>'+
                     '<img src="img/example-goal.jpg" style="max-width:50vw;max-height:auto; margin-bottom:auto;">'+
@@ -88,14 +91,14 @@ var showstimfix = '<div id="InStruct" style="background-color:black; height:100v
 var showactions1 = '<div id="InStruct" style="background-color:black; height:100vh; width:100vw; margin:0 auto;'+
                    'position:absolute; top:0;left:0; display:flex; align-items:center; justify-content:space-between; flex-direction:column;">'+
                     '<p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw; margin-top:auto; margin-bottom:auto;">'+
-                        'In each display room you have to make a choice. If you think you will be able to find the painting before the end of this job, ' +
-                        'you can press the &lt;m&gt; key to text your boss. You will ultimately get paid 1 point for each time you have reassured ' +
-                        'your boss. However, if you do not find the painting that job, your boss will fine you this amount. How many points are on the line'+
-                        ', is displayed on the bottom of your screen, indicated by yellow coins.' +
+                        'Your goal is to find and sell the target painting, for a price that you can determine. If you find the painting within the 15 steps ' +
+                        'of that job, you will receive the price as a payout, added to your total number of points. If you do not find the painting within the '+
+                        '15 steps, the price will be taken away from your total number of points as a fine. The current price of the painting is shown on the '+
+                        'bottom of the screen, indicated by yellow coins.'+
                     '</p>'+
                     '<img src="img/3coin-illustrate.png" style="max-width:40vw;max-height:auto; margin-bottom:auto;">'+
                     '<p style="color:white; font-family:VideoGame; font-size:15px; line-height:1.5; max-width:40vw; margin-top:auto; margin-bottom:auto;">'+
-                        'For example, here there are three points on the line, indicated by the three yellow coins on the bottom.' +
+                        'For example, here the price of the target painting is three, indicated by the three yellow coins on the bottom.' +
                     '</p>'+
                     '<div style="display:flex; min-width:100vw; justify-content:space-between; align-items: flex-end">'+
                         '<p style="color:white; font-family:VideoGame; font-size:25px;">'+
@@ -109,18 +112,16 @@ var showactions1 = '<div id="InStruct" style="background-color:black; height:100
                         '</p>'+
                     '</div>'+
                 '</div>'
-
+                    
 var showactions2 = '<div id="InStruct" style="background-color:black; height:100vh; width:100vw; margin:0 auto;'+
                     'position:absolute; top:0;left:0; display:flex; align-items:center; justify-content:space-between; flex-direction:column;">'+
                         '<p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw; margin-top:auto; margin-bottom:auto;">'+
-                            'As soon as you press the &lt;m&gt; key, the amount of yellow coins will increase. If you are not sure you will reach the goal ' +
-                            'and do not wish to take this risk, you can press the &lt;z&gt; key, and nothing will happen. If you wish to make as many points '+
-                            'as possible, you must find the right moments to press the &lt;m&gt; key, and take the risk. Once you have increased the number ' +
-                            'of coins, you cannot decrease it again for that job. You can only press &lt;m&gt; or &lt;z&gt; once per display room.'+
+                            'The price is determined by a choice you are forced to make in each display room. The price will always start at 0 in the beginning '+
+                            'of a job. As soon as you press the &lt;m&gt; key, the price is increased by one. This cannot be decreased again during that job!'+
                         '</p>'+
                         '<img src="img/4coin-illustrate.png" style="max-width:40vw;max-height:auto; margin-bottom:auto;">'+
                         '<p style="color:white; font-family:VideoGame; font-size:15px; line-height:1.5; max-width:40vw; margin-top:auto; margin-bottom:auto;">'+
-                            'For example, here the number of coins has been increased to four. This cannot be undone during this job.' +
+                            'For example, here the number of coins has been increased to four after the &lt;m&gt; key was pressed. This cannot be undone during this job.' +
                         '</p>'+
                         '<div style="display:flex; min-width:100vw; justify-content:space-between; align-items: flex-end">'+
                             '<p style="color:white; font-family:VideoGame; font-size:25px;">'+
@@ -138,12 +139,13 @@ var showactions2 = '<div id="InStruct" style="background-color:black; height:100
 var showactions3 = '<div id="InStruct" style="background-color:black; height:100vh; width:100vw; margin:0 auto;'+
                     'position:absolute; top:0;left:0; display:flex; align-items:center; justify-content:space-between; flex-direction:column;">'+
                         '<p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw; margin-top:auto; margin-bottom:auto;">'+
-                            'Each job, you start out with 0 coins on the line. This means that, by continuously pressing &lt;z&gt;, you do not have to '+
-                            'lose any of your current points, if you wish to not take any risks. However, you will also not be able to earn points that way.'+
+                            'Increasing the price comes at the risk of being fined if you do not find the target painting within the 15 paintings you can inspect '+
+                            'during that job. If you do not wish to risk being fined, you can press the &lt;z&gt; key, and the price will remain stationary. It cannot '+
+                            'be decreased.'+
                         '</p>'+
                         '<img src="img/coinIllustrate.png" style="max-width:40vw;max-height:auto; margin-bottom:auto;">'+
                         '<p style="color:white; font-family:VideoGame; font-size:15px; line-height:1.5; max-width:40vw; margin-top:auto; margin-bottom:auto;">'+
-                            'For example, here there are no coins on the line.' +
+                            'For example, here there price of the target painting is zero, which can be maintained by pressing the &lt;z&gt; key.' +
                         '</p>'+
                         '<div style="display:flex; min-width:100vw; justify-content:space-between; align-items: flex-end">'+
                             '<p style="color:white; font-family:VideoGame; font-size:25px;">'+
@@ -161,9 +163,10 @@ var showactions3 = '<div id="InStruct" style="background-color:black; height:100
 var omitpunish = '<div id="InStruct" style="background-color:black; height:100vh; width:100vw; margin:0 auto;'+
                     'position:absolute; top:0;left:0; display:flex; align-items:center; justify-content:space-between; flex-direction:column;">'+
                         '<p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw; margin-top:auto; margin-bottom:auto;">'+
-                            'In each display room, you have to press either &lt;z&gt; or &lt;m&gt;. If you do nothing, your boss will get angry, and take '+
-                            'away one point from your grand total immediately. You do not have to press any key when in a hallway. If you have forgotten to '+
-                            'press a key in the previous display room, you will be reminded in the following hallway that a point has been deducted.'+
+                            'Remember: You must press either &lt;z&gt; or &lt;m&gt; in each display room once. If you do nothing, your boss will get angry, and take '+
+                            'away one point from your grand total immediately. You can only make one choice per display room: Your first keypress counts. You do not'+
+                            ' have to press any key when in a hallway. If you have forgotten to press a key in the previous display room, you will be reminded in the '+
+                            'following hallway that a point has been deducted.'+
                         '</p>'+
                         '<img src="img/omitHallway.png" style="max-width:40vw;max-height:auto; margin-bottom:auto;">'+
                         '<p style="color:white; font-family:VideoGame; font-size:15px; line-height:1.5; max-width:40vw; margin-top:auto; margin-bottom:auto;">'+
@@ -188,6 +191,12 @@ var officeinstr = '<div id="InStruct" style="background-color:black; height:100v
                             'After each job, you will return to your office. In the office, you will be reminded how many points you won or lost on the previous'+
                             ' job. You will also be reminded how many jobs you have left, and how many succesful sales you have achieved so far. A successful '+
                             'sale means that the target painting was acquired on a job.'+
+                        '</p>'+
+                        '<img src="img/TheOfficeIllustrated.png" style="max-width:40vw;max-height:auto; margin-bottom:auto; border:2px solid white">'+
+                        '<p style="color:white; font-family:VideoGame; font-size:15px; line-height:1.5; max-width:40vw; margin-top:auto; margin-bottom:auto;">'+
+                            'The Office shows on the left how many sales you have made in total. In the middle, you can see how many points you earned or lost ' +
+                            'on the last job. On the right, you can see how many jobs you have left before the experiment ends. You can always see your total '+
+                            'amount of points on the top of the screen.'+
                         '</p>'+
                         '<div style="display:flex; min-width:100vw; justify-content:space-between; align-items: flex-end">'+
                             '<p style="color:white; font-family:VideoGame; font-size:25px;">'+
@@ -227,17 +236,6 @@ var instr4s = '<div id="InStruct" style="background-color:black; height:100vh; w
                     '</p>'+
                 '</div>'+
               '</div>'
-
-var prac1instr = '<div id="InStruct" style="background-color:black; height:100vh; width:100vw; margin:0 auto; position:absolute; top:0;left:0;\
-                    display:flex; align-items:center; justify-content:center; flex-direction:column;">\
-                    <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
-                        Lets first practice a job where you will reach the goal guaranteed. Please respond with &lt;m&gt; in every \
-                        display room, so you can see the coins increase.\
-                    </p>\
-                    <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
-                        Press &lt;m&gt; to continue.\
-                    </p>\
-                </div>'
 
 /* ---- JSpsych Trial Variables ---- */
 // The instructions!

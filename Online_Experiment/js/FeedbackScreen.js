@@ -56,3 +56,22 @@ var FeedbStr = '<div id="FeedbackDiv" style="margin:0 auto;">'+
             ctx.fillText(-mbPunishf, 720, 950)
         }
     }
+
+/* ---- JSpsych Trial Variables ---- */
+// The Office - full feedback after every job
+var pointfb = {
+    type: 'html-keyboard-response',
+    stimulus: FeedbStr,
+    on_load: function(){
+        total_reward = next_total_reward;
+        next_total_reward = 0;
+        trCheckIdx = 2+condLMidx;
+        //var nGoals = jsPsych.data.get().filter([{decision: 'upgoal'}, {decision: 'downgoal'}, {decision: 'missgoal'}]).count();
+        var trRewf = jsPsych.data.get().last(trCheckIdx).values()[0].trRew;
+        var trLeft = jsPsych.data.get().last(trCheckIdx).values()[0].miniblock;
+        var mbPunishf = jsPsych.data.get().last(trCheckIdx).values()[0].mbPunish;
+        FeedbackS(nWin, trRewf, trLeft, mbPunishf);
+        mbPunish = 0;  //Reset mbPunish for next trial
+        condLMidx = 0; //Reset checker if last trial was missed
+    }
+}
