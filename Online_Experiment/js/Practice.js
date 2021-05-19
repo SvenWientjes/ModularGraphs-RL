@@ -116,6 +116,17 @@ var pracfinish = '<div id="InStruct" style="background-color:black; height:100vh
                         will be reset to zero.\
                     </p>\
                     </div>'
+var expstart = '<div id="InStruct" style="background-color:black; height:100vh; width:100vw; margin:0 auto; position:absolute; top:0;left:0;\
+                    display:flex; align-items:center; justify-content:center; flex-direction:column;">\
+                    <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
+                        Starting the real experiment. Good luck! Remember each point is worth 10 cents. You will be shown a maximum of 15 \
+                        display rooms. If you did not find the target painting within these 15 rooms, it is considered a lose, and you will \
+                        be fined.\
+                    </p>\
+                    <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
+                        Press &lt;m&gt; to continue.\
+                    </p>\
+                    </div>'
 
 // Define variables for practice
 var winOrder = [0,1,2,3,4];
@@ -162,6 +173,9 @@ var padFail = {
     on_load: function(data){
         mbendf = 'downend'
         next_total_reward = total_reward - trBet;
+        if(jsPsych.data.get().filter([{miniblock:-1}]).last(1).filter({decision:'miss'}, {decision:'missgoal'}).count() == 1){
+            condLMidx=2;
+        }
     }
 }
 
@@ -253,6 +267,18 @@ var finprac = {
             total_reward = 0;
             next_total_reward = 0;
             nWin = 0;
+            repPrac = 'start';
+        }else if(data.key_press==87){
+            repPrac = 'win';
+        }else if(data.key_press==76){
+            repPrac = 'lose';
         }
     }
+}
+
+// Starting the real experiment
+var startExp = {
+    type: 'html-keyboard-response',
+    stimulus: expstart,
+    choices: ['m']
 }

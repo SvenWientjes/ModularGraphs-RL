@@ -47,6 +47,7 @@
     var mbendf = 'downend';     // Miniblock-feedback
     var condLMidx=0;            // Was the last trial response omitted?
     var waspressed = 0;         // Previous choice in choosing entry rooms
+    var repPrac = 'init'        // initialize variable to keep track of optional repeating practice trials
     var trBet = 0;    // Variable tracks current bet within miniblock
     var trRew = 0;    // Variable tracks reward differential per trial within miniblock
     var mbPunish = 0; // Variable tracks reward punishment for omitted responses
@@ -157,7 +158,26 @@
             }
         }
     }
-    
+    // Loop of optional practices
+    var optionalWin = {
+        timeline: [pracGoal, winPracBlock, conditionallastmiss, blockend, pointfb],
+        conditional_function: function(){
+            return repPrac == 'win';
+        }
+    }
+    var optionalLose = {
+        timeline: [pracGoal, losePracBlock, conditionallastmiss, padFail, blockend, pointfb],
+        conditional_function: function(){
+            return repPrac == 'lose';
+        }
+    }
+    var pracOption = {
+        timeline: [optionalWin, optionalLose, finprac],
+        loop_function: function(data){
+            return repPrac != 'start'
+        }
+    }
+
     timeline.push(loop_prac1);
     timeline.push(blockend);
     timeline.push(pointfb);
@@ -172,7 +192,8 @@
     timeline.push(blockend);
     timeline.push(pointfb);
     timeline.push(pracFb3);
-    timeline.push(finprac);
+    timeline.push(pracOption);
+    timeline.push(startExp);
 
     /* -------- Define screens and timeline order of main experiment -------- */
     // Define a miniblock!
