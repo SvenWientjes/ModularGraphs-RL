@@ -104,7 +104,20 @@
             var upcount = jsPsych.data.get().filter([{miniblock:-1}]).last(5).filter({decision:'up'}, {decision:'upgoal'}).count();
             var downcount = jsPsych.data.get().filter([{miniblock:-1}]).last(5).filter({decision:'down'}, {decision:'downgoal'}).count();
             var misscount = jsPsych.data.get().filter([{miniblock:-1}]).last(5).filter({decision:'miss'}, {decision:'missgoal'}).count();
-            if(upcount>0 && downcount>0 && misscount>0){
+            if(upcount==1 && downcount==4 && misscount==0){
+                return false
+            }else{
+                return true
+            }
+        }
+    }
+    var repeat_prac3 = {
+        timeline: [pracFail3],
+        conditional_function: function(){
+            var upcount = jsPsych.data.get().filter([{miniblock:-1}]).last(5).filter({decision:'up'}, {decision:'upgoal'}).count();
+            var downcount = jsPsych.data.get().filter([{miniblock:-1}]).last(5).filter({decision:'down'}, {decision:'downgoal'}).count();
+            var misscount = jsPsych.data.get().filter([{miniblock:-1}]).last(5).filter({decision:'miss'}, {decision:'missgoal'}).count();
+            if(upcount==0 && downcount==4 && misscount==1){
                 return false
             }else{
                 return true
@@ -124,7 +137,20 @@
             var upcount = jsPsych.data.get().filter([{miniblock:-1}]).last(5).filter({decision:'up'}, {decision:'upgoal'}).count();
             var downcount = jsPsych.data.get().filter([{miniblock:-1}]).last(5).filter({decision:'down'}, {decision:'downgoal'}).count();
             var misscount = jsPsych.data.get().filter([{miniblock:-1}]).last(5).filter({decision:'miss'}, {decision:'missgoal'}).count();
-            if(upcount>0 && downcount>0 && misscount>0){
+            if(upcount==1 && downcount==4 && misscount==0){
+                return false
+            }else{
+                return true
+            }
+        }
+    }
+    var loop_prac3 = {
+        timeline: [pracInstr3, pracGoal, losePracBlock, conditionallastmiss, repeat_prac3],
+        loop_function: function(data){
+            var upcount = jsPsych.data.get().filter([{miniblock:-1}]).last(5).filter({decision:'up'}, {decision:'upgoal'}).count();
+            var downcount = jsPsych.data.get().filter([{miniblock:-1}]).last(5).filter({decision:'down'}, {decision:'downgoal'}).count();
+            var misscount = jsPsych.data.get().filter([{miniblock:-1}]).last(5).filter({decision:'miss'}, {decision:'missgoal'}).count();
+            if(upcount==0 && downcount==4 && misscount==1){
                 return false
             }else{
                 return true
@@ -137,8 +163,15 @@
     timeline.push(pointfb);
     timeline.push(pracFb1);
     timeline.push(loop_prac2);
+    timeline.push(padFail);
     timeline.push(blockend);
     timeline.push(pointfb);
+    timeline.push(pracFb2);
+    timeline.push(loop_prac3);
+    timeline.push(padFail);
+    timeline.push(blockend);
+    timeline.push(pointfb);
+    timeline.push(pracFb3);
     timeline.push(finprac);
 
     /* -------- Define screens and timeline order of main experiment -------- */

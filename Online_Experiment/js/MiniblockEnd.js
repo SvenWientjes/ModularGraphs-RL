@@ -42,8 +42,8 @@ function mbendS(mbend, total_reward, trBetf){
         var txt = 'Congratulations! You have found the painting.\n' +
                   'You will be awarded the corresponding \npoints in the office.'
     }else if(mbend=='downend'||mbend=='upend'||mbend=='missend'){
-        var txt = 'You did not find the painting in time. \nYou will be charged in the office.\n' +
-                  'Better luck next time! \nMaybe you could have prevented some losses.'
+        var txt = 'You did not find the painting in time. \nYou will be fined in the office.\n' +
+                  'Better luck next time!'
     }
 
     // Makeup for text

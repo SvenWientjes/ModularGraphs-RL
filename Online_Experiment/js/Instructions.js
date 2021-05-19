@@ -221,7 +221,7 @@ var instr4s = '<div id="InStruct" style="background-color:black; height:100vh; w
                 '<p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw; margin-bottom:auto;">'+
                     'This is the end of the instructions. Lets practice! When you press the &lt;m&gt; key, these instructions will end, and you will start a practice job. '+
                     'You will not be able to return to these instructions, but you will be able to repeat the practice job if you wish. Any points made during these practice '+
-                    'jobs will be immediatly reset, and will not contribute to your final payout. The paintings during practice are different from the paintings used in the '+
+                    'jobs will be reset once the main experiment starts, and will not contribute to your final payout. The paintings during practice are different from the paintings used in the '+
                     'experiment itself. These are used merely to illustrate the structure of the task.' +
                 '</p>'+
                 '<div style="display:flex; min-width:100vw; justify-content:space-between; align-items: flex-end">'+

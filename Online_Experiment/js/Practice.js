@@ -7,7 +7,7 @@ var prac1instr = '<div id="InStruct" style="background-color:black; height:100vh
                         so make sure you respond in time! You should also respond in the final display room with the target painting. \
                     </p>\
                     <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
-                        Remember: You can only affect the price of the target painting. You cannot influence what you see.\
+                        Remember: You can only affect the price of the target painting. You cannot influence which display rooms you see.\
                     </p>\
                     <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
                         Press &lt;m&gt; to continue.\
@@ -33,30 +33,78 @@ var prac1fail = '<div id="InStruct" style="background-color:black; height:100vh;
                         Press &lt;m&gt; to continue.\
                     </p>\
                 </div>'
+
 // Instructions for second practice block
 var prac2instr = '<div id="InStruct" style="background-color:black; height:100vh; width:100vw; margin:0 auto; position:absolute; top:0;left:0;\
                     display:flex; align-items:center; justify-content:center; flex-direction:column;">\
                     <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
                         Now lets practice a job where you lose. For the sake of time, we will limit this job again to 5 display \
                         rooms. Keep in mind that, during the real experiment, you will get to see up to 15 display rooms! For this short \
-                        practice run, please respond with &lt;m&gt; at least once, with &lt;z&gt; at least once, and please forget to respond \
-                        at least once, so you get to see what happens when no response is registered.\
+                        practice run, please respond with &lt;m&gt; exactly once, and with &lt;z&gt; for the other rooms. This way you can \
+                        see how a point is deducted when you increase the price, but do not find the target painting.\
                     </p>\
                     <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
                         Press &lt;m&gt; to continue.\
                     </p>\
                     </div>'
+// Feedback after second practice block
+var prac2fb = '<div id="InStruct" style="background-color:black; height:100vh; width:100vw; margin:0 auto; position:absolute; top:0;left:0;\
+                display:flex; align-items:center; justify-content:center; flex-direction:column;">\
+                <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
+                    Well done! You should have seen the points on top decrease from 5 to 4. You can validate this \
+                    in the next and final practice block.\
+                </p>\
+                <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
+                    Press &lt;m&gt; to continue.\
+                </p>\
+            </div>'                        
+// Failed on the second practice block
 var prac2fail = '<div id="InStruct" style="background-color:black; height:100vh; width:100vw; margin:0 auto; position:absolute; top:0;left:0;\
                     display:flex; align-items:center; justify-content:center; flex-direction:column;">\
                     <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
-                        It seems you did not manage to press &lt;m&gt;, press &lt;z&gt;, and omit responding, at least once each. Lets try again!\
+                        It seems you did not manage to press &lt;m&gt; once, and press &lt;z&gt;, for the other rooms. Lets try again!\
+                    </p>\
+                    <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
+                        Press &lt;m&gt; to continue.\
+                    </p>\
+                    </div>'                
+
+
+// Instructions for third practice block
+var prac3instr = '<div id="InStruct" style="background-color:black; height:100vh; width:100vw; margin:0 auto; position:absolute; top:0;left:0;\
+                    display:flex; align-items:center; justify-content:center; flex-direction:column;">\
+                    <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
+                        For the final practice block, we would like to show you what happens when you forget to press either &lt;z&gt; or \
+                        &lt;m&gt;, or are too late. You will again lose this practice block. Please refrain from responding on one out of \
+                        the five display rooms you will see. Respond with &lt;z&gt; on all other display rooms. You should notice the feedback \
+                        directly in the hallway afterwards, and the points on top will decrease immediately.\
                     </p>\
                     <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
                         Press &lt;m&gt; to continue.\
                     </p>\
                     </div>'
-
-
+// Failed on the third practice block
+var prac3fail = '<div id="InStruct" style="background-color:black; height:100vh; width:100vw; margin:0 auto; position:absolute; top:0;left:0;\
+                    display:flex; align-items:center; justify-content:center; flex-direction:column;">\
+                    <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
+                        It seems you did not manage to omit responding once, and press &lt;z&gt; on all other display rooms. Lets try again!\
+                    </p>\
+                    <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
+                        Press &lt;m&gt; to continue.\
+                    </p>\
+                    </div>'
+// Feedback after second practice block
+var prac3fb = '<div id="InStruct" style="background-color:black; height:100vh; width:100vw; margin:0 auto; position:absolute; top:0;left:0;\
+                display:flex; align-items:center; justify-content:center; flex-direction:column;">\
+                <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
+                    Well done! You should have noticed that in the office, you are again reminded that you missed \
+                    one or more responses. This message only appears when you have omitted a response during the \
+                    preceding job.\
+                </p>\
+                <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
+                    Press &lt;m&gt; to continue.\
+                </p>\
+            </div>'
 
 // Instructions for finishing the practice
 var pracfinish = '<div id="InStruct" style="background-color:black; height:100vh; width:100vw; margin:0 auto; position:absolute; top:0;left:0;\
@@ -64,7 +112,8 @@ var pracfinish = '<div id="InStruct" style="background-color:black; height:100vh
                     <p style="color:white; font-family:VideoGame; font-size:25px; line-height:1.5; max-width:80vw;">\
                         It seems like you have the task nailed down! If you with to start the real experiment, press &lt;m&gt. \
                         You can also choose to practice more if you wish. Press the &lt;w&gt key to practice the winning job again. \
-                        Press the &lt;l&gt key to practice the losing job again.\
+                        Press the &lt;l&gt key to practice the losing job again. Once you start with the real experiment, your points \
+                        will be reset to zero.\
                     </p>\
                     </div>'
 
@@ -99,6 +148,23 @@ var pracGoal = {
 }
             
 /* ---- JSpsych Trial Variables ---- */
+// Padding of variables for shorter fail practices - 4 points
+var padFail = {
+    type: 'html-keyboard-response',
+    stimulus: '<p>',
+    trial_duration: 1,
+    data: {
+        trRew: function(){return -trBet;},
+        mbendf: function(){return 'downend';},
+        miniblock: -1,
+        mbPunish: function(){return jsPsych.data.get().last(1).values()[0].mbPunish}
+    },
+    on_load: function(data){
+        mbendf = 'downend'
+        next_total_reward = total_reward - trBet;
+    }
+}
+
 // Instructions for first practice block
 var pracInstr1 = {
     type: 'html-keyboard-response',
@@ -124,6 +190,7 @@ var pracFb1 = {
     stimulus: prac1fb,
     choices: ['m']
 }
+
 // Instructions for second practice block
 var pracInstr2 = {
     type: 'html-keyboard-response',
@@ -143,6 +210,39 @@ var pracFail2 = {
         mbPunish=0;
     }
 }
+// Feedback for second practice block
+var pracFb2 = {
+    type: 'html-keyboard-response',
+    stimulus: prac2fb,
+    choices: ['m']
+}
+
+// Instructions for third practice block
+var pracInstr3 = {
+    type: 'html-keyboard-response',
+    stimulus: prac3instr,
+    choices: ['m']
+}
+// Notify that third practice block failed
+var pracFail3 = {
+    type: 'html-keyboard-response',
+    stimulus: prac3fail,
+    choices: ['m'],
+    on_load: function(){
+        trBet = 0;
+        total_reward = 4;
+        miss = false;
+        condLMidx = 0;
+        mbPunish=0;
+    }
+}
+// Feedback for third practice block
+var pracFb3 = {
+    type: 'html-keyboard-response',
+    stimulus: prac3fb,
+    choices: ['m']
+}
+
 // Finish the practicing blocks!
 var finprac = {
     type: 'html-keyboard-response',
