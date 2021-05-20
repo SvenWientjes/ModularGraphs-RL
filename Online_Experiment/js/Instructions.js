@@ -145,7 +145,7 @@ var showactions3 = '<div id="InStruct" style="background-color:black; height:100
                         '</p>'+
                         '<img src="img/coinIllustrate.png" style="max-width:40vw;max-height:auto; margin-bottom:auto;">'+
                         '<p style="color:white; font-family:VideoGame; font-size:15px; line-height:1.5; max-width:40vw; margin-top:auto; margin-bottom:auto;">'+
-                            'For example, here there price of the target painting is zero, which can be maintained by pressing the &lt;z&gt; key.' +
+                            'For example, here the price of the target painting is zero, which can be maintained by pressing the &lt;z&gt; key.' +
                         '</p>'+
                         '<div style="display:flex; min-width:100vw; justify-content:space-between; align-items: flex-end">'+
                             '<p style="color:white; font-family:VideoGame; font-size:25px;">'+

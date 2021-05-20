@@ -17,6 +17,7 @@
         <script src="js/Instructions.js"></script>
         <script src="js/MiniblockEnd.js"></script>
         <script src="js/telelist.js"></script>
+        <script src="js/ExpEnd.js"></script>
         <script src="js/TeleportQuestion.js"></script>
         <script src="js/stimLists.js"></script>
         <script src="js/Practice.js"></script>
@@ -51,6 +52,8 @@
     var trBet = 0;    // Variable tracks current bet within miniblock
     var trRew = 0;    // Variable tracks reward differential per trial within miniblock
     var mbPunish = 0; // Variable tracks reward punishment for omitted responses
+    var telcor = 0;   // Tracks correct teleporter hallway placements
+    var wingcor = 0;  // Tracks correct wing entry answers
     var entryQlist = [[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]]; // Definition of entry room presentations
     entryQlist = jsPsych.randomization.shuffle(entryQlist);      // Shuffle of trial order
     entryQlist = entryQlist.map(jsPsych.randomization.shuffle);  // Shuffle of room ordering within trial
@@ -81,9 +84,9 @@
         fullscreen_mode: true
     });
     // Push written instructions
-    timeline.push(instr1);
+    //timeline.push(instr1);
 
-    /* -------- Define practice trial order -------- */
+    /* -------- Define practice trial order and looping / repeating conditions -------- */
     var winPracBlock = {
         timeline: [fixation, trial],
         timeline_variables: winPractice
@@ -193,7 +196,7 @@
     timeline.push(pointfb);
     timeline.push(pracFb3);
     timeline.push(pracOption);
-    timeline.push(startExp);
+    timeline.push(startExp); 
 
     /* -------- Define screens and timeline order of main experiment -------- */
     // Define a miniblock!
@@ -229,39 +232,13 @@
         timeline.push(pointfb);
     } 
 
+    /* -------- After the main experiment: Checking for questions -------- */
     // Congratulate on finishing the main experiment
+    timeline.push(finishMessage);
     // Ask if they saw any room more than others?
 
-    // Create timeline variable for indexing tele questions
-    var teleIdx = [];
-    for (var j=0; j<3; j++) { //iterate over trialorder to add stimuli
-        teleIdx.push({
-            tidx: j
-        });
-    }
-
     // Prompt for tele questions
-
-    // Screen for tele questions
-    var teleChoice = {
-        type: 'html-button-response',
-        stimulus: teleStr,
-        choices: ['1','2','3','4','5'],
-        button_html: btnStr,
-        on_load: function(){
-            TeleC(jsPsych.timelineVariable('tidx',true));
-        },
-        on_finish: function(data){
-            data.teledecision = telelist[ppn][jsPsych.timelineVariable('tidx',true)][data.button_pressed];
-            data.options = telelist[ppn][jsPsych.timelineVariable('tidx',true)];
-        }
-    }
-    var teleWait = {
-        type: 'html-keyboard-response',
-        stimulus: '<canvas id="WaitCv" width="1920" height="1080" style="background-color:black"</canvas>',
-        choices: jsPsych.NO_KEYS,
-        trial_duration: 1000
-    }
+    timeline.push(telprompMessage);
     // Push into timeline
     var teleblock ={
         timeline: [teleChoice,teleWait],
@@ -269,61 +246,19 @@
     }
     timeline.push(teleblock);
 
-    // Create questions about wing entries
-    // Create timeline variable for indexing entry questions
-    var entryIdx = [];
-    for (var j=0; j<3; j++) { //iterate over trialorder to add stimuli
-        entryIdx.push({
-            eidx: j
-        });
-    }
-
-    // Set up the choice screen
-    var entryChoice1 = {
-        type: 'html-button-response',
-        stimulus: '<canvas id="ChoiceCv" width="1920" height="1080" style="background-color:black"</canvas>',
-        choices: ['1','2','3','4','5'],
-        button_html: function(){
-            return(EntryBtnGen(entryQlist[jsPsych.timelineVariable('eidx',true)], -1));
-        },
-        on_load: function(){
-            EntryC('bub',-1);
-        },
-        on_finish: function(data){
-            data.decision = entryQlist[jsPsych.timelineVariable('eidx',true)][data.button_pressed]
-            data.options = entryQlist[jsPsych.timelineVariable('eidx',true)];
-        }
-    }
-
-    // Set up the choice screen
-    var entryChoice2 = {
-        type: 'html-button-response',
-        stimulus: '<canvas id="ChoiceCv" width="1920" height="1080" style="background-color:black"</canvas>',
-        choices: ['1','2','3','4'],
-        button_html: function(){
-            waspressed = jsPsych.data.get().last(1).values()[0].button_pressed;
-            return(EntryBtnGen(entryQlist[jsPsych.timelineVariable('eidx',true)], waspressed));
-        },
-        on_load: function(){
-            waspressed = jsPsych.data.get().last(1).values()[0].button_pressed;
-            orderedrooms = entryQlist[jsPsych.timelineVariable('eidx',true)];
-            EntryC(rooms[orderedrooms[waspressed]], waspressed);
-        },
-        on_finish: function(data){
-            if(data.button_pressed >= waspressed){
-                data.button_pressed += 1;
-            }
-            data.decision = entryQlist[jsPsych.timelineVariable('eidx',true)][data.button_pressed]
-            data.options = entryQlist[jsPsych.timelineVariable('eidx',true)];
-        }
-    }
-
+    // Prompt for wing entries
+    timeline.push(entprompMessage);
     //Push into timeline
     var entryblock ={
         timeline: [entryChoice1, entryChoice2],
         timeline_variables:entryIdx,
     }
     timeline.push(entryblock);
+
+    // Feedback for post-exp questions and money 
+    timeline.push(qendMsg);
+    timeline.push(expendMsg);
+
 
     // Start the experiment
     jsPsych.init({
