@@ -29,7 +29,7 @@ function EntryBtnGen(orderedrooms, whichChosen){
     if(whichChosen < 0){
         for(var i=0; i<5; i++){
             roombtnStr.push(
-                '<button class="image-btn-room" style = "position:absolute; left:'+(xpix+i*384)+'px; top:433.125px;"><img src="'+rooms[orderedrooms[i]]+'" width="380" height="380*1080/1920" /></button>'
+                '<button class="image-btn-room" style = "position:absolute; left:'+(xpix+i*384)+'px; top:433.125px;"><img src="'+rooms[orderedrooms[i]]+'" width="380" height="calc(380*1080/1920)" /></button>'
             );
         }
     }
@@ -39,7 +39,7 @@ function EntryBtnGen(orderedrooms, whichChosen){
                 // nothing?
             }else if(i != whichChosen){
                 roombtnStr.push(
-                    '<button class="image-btn-room" style = "position:absolute; left:'+(xpix+i*384)+'px; top:433.125px;"><img src="'+rooms[orderedrooms[i]]+'" width="380" height="380*1080/1920" /></button>'
+                    '<button class="image-btn-room" style = "position:absolute; left:'+(xpix+i*384)+'px; top:433.125px;"><img src="'+rooms[orderedrooms[i]]+'" width="380" height="calc(380*1080/1920)" /></button>'
                 );            
             }
         }

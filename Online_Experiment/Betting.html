@@ -24,6 +24,8 @@
         <script src="js/trajectories.js"></script> <!-- Experiment defining variables -->
         <script src="js/goallist.js"></script> <!-- Experiment defining variables -->
         <script src="js/FixationCanvas.js"></script> 
+        <script src="plugins/jquery-3.6.0.min.js"></script>
+        <script src="plugins/pavlovia.js"></script>
         <link href="jspsych-6.2.0/css/jspsych.css" rel="stylesheet" type="text/css">
         <link href="css/custom_styles.css" rel="stylesheet" type="text/css">
     </head>
@@ -31,6 +33,7 @@
     <script>
 
     /* -------- EXPERIMENT DEFINING VARIABLES -------- */
+    var pavlov = false;
     // Manipulable Variables
     var ppn = 1;         // Participant Nr
     var nTrs = 2;        // How many trials to display? (max 100)
@@ -66,25 +69,42 @@
     var goals = [];
     shfIdx.forEach(i => goals.push(goalsdef[i]));
     console.log(rooms);
+    console.log(navigator.appName);
     
     // Generate array of preloading images
     var pre_load_stimuli = ['img/Hallway.png', rooms, goals, 'img/3coin-illustrate.png',
                             'img/4coin-illustrate.png', 'img/example-goal.jpg', 'img/fixHallway.png', 'img/omitHallway.png', pracRooms];
 
     /* -------- Define timeline order of instructions etc -------- */
+    // Establish connection with pavlovia
+    if(pavlov){
+        var pavlovia_init = {
+            type: "pavlovia",
+            command: "init"
+        };
+        timeline.push(pavlovia_init);
+    }
+
     // Add welcome screens to timeline
     timeline.push(welcome);
-    timeline.push(qIntro);
+    timeline.push(qintroPreload);
     timeline.push(survey_trial);
     timeline.push(fsIntro);
 
     // Go fullscreen from here on out
     timeline.push({
         type: 'fullscreen',
-        fullscreen_mode: true
+        fullscreen_mode: true,
+        on_finish: function(){
+            if(!(window.innerWidth==1920 && window.innerHeight==1080)){
+                jsPsych.endExperiment('Your screen is the wrong size. If you have another monitor with a 1920x1080 resolution, please \
+                                        run the experiment again, on that monitor.')
+            }
+        }
     });
+
     // Push written instructions
-    //timeline.push(instr1);
+    timeline.push(instr1);
 
     /* -------- Define practice trial order and looping / repeating conditions -------- */
     var winPracBlock = {
@@ -259,11 +279,25 @@
     timeline.push(qendMsg);
     timeline.push(expendMsg);
 
+    // Finish connection with pavlovia
+    if(pavlov){
+        var pavlovia_finish = {
+            type: "pavlovia",
+            command: "finish"
+        };
+        timeline.push(pavlovia_finish);
+    }
 
     // Start the experiment
     jsPsych.init({
         timeline: timeline,
         preload_images: pre_load_stimuli,
+        on_data_update: function(data){
+            // Current window resolution
+            data.window_resolution = window.innerWidth + ' x ' + window.innerHeight;
+            // Current window focus
+            data.focus = document.hasFocus();
+        },
         on_finish: function() {
             //jsPsych.data.displayData('csv');
             jsPsych.data.get().localSave('csv','mydata.csv');

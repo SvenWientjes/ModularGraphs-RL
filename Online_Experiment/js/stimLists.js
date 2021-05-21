@@ -72,6 +72,7 @@ var trial = {
             data.decision = mbendf;                // Append participant decision to trial data
             trRew = 0;                             // Reset miniblock-reward for next miniblock
             miss = false;                          // Prevent carryover misses
+            data.choiceVar = 0;                    // Integer coded variable checking responses
             jsPsych.endCurrentTimeline();
         };
         if (data.key_press == 77 && data.node == data.goalnode) { // Bet up on goal
@@ -86,17 +87,20 @@ var trial = {
             data.decision = mbendf;                // Append participant decision to trial data
             trRew = 0;                             // Reset miniblock-reward for next miniblock
             miss = false;                          // Prevent carryover misses
+            data.choiceVar = 1;                    // Integer coded variable checking responses
             jsPsych.endCurrentTimeline();
         };
         if (data.key_press == 90 && data.nSteps != 14 && data.node != data.goalnode) { // Down bet
             trBet = Math.max(trBet,0);       // Do not increase bet by one
             data.trBet = trBet;              // Correct current trial bet
             data.decision = 'down';          // Append participant decision to trial data
+            data.choiceVar = 0;                    // Integer coded variable checking responses
         };
         if (data.key_press == 77 && data.nSteps != 14 && data.node != data.goalnode) { // Up bet
             trBet = Math.max(trBet+1,0);     // Increase bet by one
             data.trBet = trBet;              // Correct current trial bet
             data.decision = 'up';            // Append participant decision to trial data 
+            data.choiceVar = 1;                    // Integer coded variable checking responses
         };
         if (data.key_press == 90 && data.nSteps == 14 && data.node != data.goalnode) { // Stop bet down
             trBet = Math.max(trBet,0);             // Do not increase bet by one
@@ -109,6 +113,7 @@ var trial = {
             data.decision = mbendf;                // Append participant decision to trial data
             trRew = 0;                             // Reset miniblock-reward for next miniblock
             miss = false;                          // Prevent carryover misses
+            data.choiceVar = 0;                    // Integer coded variable checking responses
         };
         if (data.key_press == 77 && data.nSteps == 14 && data.node != data.goalnode) { // Stop bet UP
             trBet = Math.max(trBet+1,0);           // Increase bet by one
@@ -121,6 +126,7 @@ var trial = {
             data.decision = mbendf;                // Append participant decision to trial data
             trRew = 0;                             // Reset miniblock-reward for next miniblock
             miss = false;                          // Prevent carryover misses
+            data.choiceVar = 1;                    // Integer coded variable checking responses
         };
         if (data.key_press == null && data.nSteps != 14 && data.node != data.goalnode) { //No response given
             mbPunish = mbPunish - 1;                      // Tracks punishments over entire miniblock
@@ -130,6 +136,7 @@ var trial = {
             data.trRew = trRew;                           // Correct current trial reward
             miss = true;
             data.decision = 'miss';
+            data.choiceVar = -1;                          // Integer coded variable checking responses
         };
         if (data.key_press == null && data.node == data.goalnode) {//No response to goal node
             nWin += 1;                             // Increment nWin
@@ -144,6 +151,7 @@ var trial = {
             data.decision = mbendf;                // Append participant decision to trial data
             trRew = 0;                             // Reset miniblock-reward for next miniblock
             miss = true;                           // Prevent carryover misses in lastmiss
+            data.choiceVar = -1;                   // Integer coded variable checking responses
             jsPsych.endCurrentTimeline();
         };
         if (data.key_press == null && data.nSteps == 14 && data.node != data.goalnode) { //No response - ending
@@ -158,6 +166,7 @@ var trial = {
             data.decision = mbendf;                // Append participant decision to trial data
             trRew = 0;                             // Reset miniblock-reward for next miniblock
             miss = true;                           // Prevent carryover misses in lastmiss
+            data.choiceVar = -1;                   // Integer coded variable checking responses
         };
     }
 }

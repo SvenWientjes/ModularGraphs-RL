@@ -13,6 +13,7 @@
    display: flex;
    flex-direction: column;
    overflow-y: hidden; /* Change to 'hidden' when truly running Hierarchical_Decision as experiment */
+   overflow-x: hidden;
  }
 
  .jspsych-display-element:focus {
