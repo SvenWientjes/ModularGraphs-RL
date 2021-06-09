@@ -154,7 +154,8 @@ EV.anal$start.v <- as.factor(EV.anal$start.v)
 ggplot(EV.anal, aes(x=stepsleft, y=EV, col=start.v)) +
   geom_line() +
   geom_hline(yintercept=0, col='red') +
-  facet_grid(.~goal.v)
+  facet_grid(.~goal.v) +
+  scale_color_manual(values = c("#2c83bb", "#bf3a2b", "#22b061", "#929e9d", "#101110","#101110","#929e9d","#9eddbb","#929e9d","#845d8d"))
 ################################################################################
 # Generate experiments according to likely characteristics #
 ## Set up all eligeble start-goal combinations ----
