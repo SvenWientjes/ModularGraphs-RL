@@ -15,8 +15,14 @@ library(data.table)
 library(ggplot2)
 # Put database into table
 devtest01 <- as.data.table(data)
-# All randID participants into numbers
+# Get randID as factor
 devtest01$randID <- as.factor(devtest01$randID)
+
+# Check which randID has seen the 2 questions and the finishing screen of the experiment (3 indicates o.k.)
+devtest01[startsWith(stimulus, '<div id="Finish"'), .N, by=randID]
+
+# Select exactly the participant which did 100 trials
+devtest01 <- devtest01[randID=='15olh4r11dmxxozswpdvky5pnlj30u13',]
 levels(devtest01$randID) <- c(1:length(levels(devtest01$randID)))
 
 # Save only interesting participants and entries
@@ -76,8 +82,15 @@ plot(1:20,fullpp[,sum(was.choice.opt)/.N,by=opt.block.div]$V1, type='l')
 ggplot(fullpp[,list(percent.correct=sum(was.choice.opt)/.N),by=opt.block.div], aes(x=opt.block.div, y=percent.correct))+
   geom_line()
 
+#################################################################################
+## Analyze goal inspection times
+goaltimedat <- devtest01[startsWith(stimulus, 'img/') & endsWith(stimulus, '_goal.png'), .(randID, miniblock, rt, stimulus)]
+goaltimedat$rt <- as.numeric(goaltimedat$rt) # To numeric
 
+# Count nr above 10000
+goaltimedat[rt>10000, .N]
 
-
+ggplot(goaltimedat[rt<10000,], aes(x=rt, col=randID))+
+  geom_density()
 
 
