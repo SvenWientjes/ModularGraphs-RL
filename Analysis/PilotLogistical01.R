@@ -66,10 +66,10 @@ ggplot(goaltimedat[goalrt<7000,], aes(x=goalrt, col=randID))+
 
 # Line plot of evolution of separate free waiting times throughout experiment progression
 ggplot(goaltimedat)+
-  geom_line(aes(x=miniblock, y=goalrt),col='blue') +
-  geom_line(aes(x=miniblock, y=mbendrt),col='green') +
-  geom_line(aes(x=miniblock, y=feedbrt),col='red') +
-  facet_grid(.~randID)
+  geom_line(aes(x=miniblock, y=goalrt/1000),col='blue') +
+  geom_line(aes(x=miniblock, y=mbendrt/1000),col='green') +
+  geom_line(aes(x=miniblock, y=feedbrt/1000),col='red') +
+  facet_grid(randID~.) + ylab('waitingtime')
 
 # Line plot of evolution of combined free waiting times throughout experiment progression
 ggplot(goaltimedat, aes(x=miniblock, y=totwait/1000, col=randID))+
