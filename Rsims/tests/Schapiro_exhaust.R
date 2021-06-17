@@ -7,9 +7,9 @@ library(doParallel)
 library(matrixcalc)
 ################################################################################
 # Task Parameters
-nTrs <- 100
+nTrs <- 75
 winM <- 1
-nVisit <- 50
+nVisit <- 1500
 nRW <- 15
 nHam <- 15
 # Transitions in list and in matrix form
@@ -50,7 +50,11 @@ idmap.d  <- list(a=c(2,3,4),b=c(7,8,9),c=c(12,13,14))    # All deep nodes
 idmap.bt <- list(a=c(1,5), b=c(6,10), c=c(11,15))        # All bottleneck nodes
 c.map <- list(a=c('c','b'), b=c('a','c'), c=c('b','a'))  # Cluster maps of bottlenecks
 idmap.dg  <- list(a=c(1,15), b=c(2,3,4, 12,13,14), c=c(5,11), d=c(6,10), e=c(8,9)) # Symmetries to Deep Goal (b) ; goal = 7
-idmap.bg  <- list(a=c(1), b=c(2,3,4), c=c(5), d=c(7,8,9), e=c(10), f=c(11),g=c(12,13,14),h=c(15)) # Symmetries to Bottleneck Goal (b) ; goal = 6
+idmap.dg2 <- list(a=c(10,11),b=c(7,8,9,12,13,14), c=c(6,15))
+idmap.bg5 <- list(a=c(10), b=c(7,8,9), c=c(6), d=c(2,3,4), e=c(1), f=c(15), g=c(12,13,14),h=c(11)) # Symmetries to Bottleneck Goal (b) ; goal = 5
+gsym5 <- ((5+c(0,5,10))-1)%%15 + 1 #x-1 modulo +1 maps 15 to 1 instead of 0
+idmap.bg6  <- list(a=c(1), b=c(2,3,4), c=c(5), d=c(7,8,9), e=c(10), f=c(11),g=c(12,13,14),h=c(15)) # Symmetries to Bottleneck Goal (b) ; goal = 6
+gsym6 <- ((6+c(0,5,10))-1)%%15 + 1
 ################################################################################
 #### How likely is it to reach a particular goal type from a particular state type? ####
 # Organize different start and goal types
@@ -58,32 +62,98 @@ s.types <- c('deep','bottleneck')
 g.types <- c('deep','bottleneck close', 'bottleneck far')
 
 # Initialize data.table to get all values
-Analytics <- data.table(rbind(expand.grid(s.types[1], g.types, NA), 
-                              expand.grid(s.types[2], g.types, c('close','far'))))
+Analytics <- data.table(rbind(expand.grid(s.types[1], g.types, NA, 1:nVisit), 
+                              expand.grid(s.types[2], g.types, c('close','far'), 1:nVisit)))
 # Name variables
-names(Analytics) <- c('s.type', 'g.type', 'c.type')
+names(Analytics) <- c('s.type', 'g.type', 'clust.loc', 't.reach')
+Analytics <- Analytics[order(t.reach)]
+Analytics$goalp  <- 0
+Analytics$startp <- 0
+Analytics$reachp <- 0
 
 # Get start IDs
-Analytics[s.type=='deep',s.id:=2]
-Analytics[s.type=='bottleneck',s.id:=1]
+#Analytics[s.type=='deep',s.id:=2]
+#Analytics[s.type=='bottleneck',s.id:=1]
 # Get goal IDs
-Analytics[,g.id:=c(7,6,10,14,15,11,7,6,10)]
+#Analytics[,g.id:=c(7,6,10,14,15,11,7,6,10)]
 
-# Get hitvec for a particular Analytics row
-for(r in 1:1){
-  # Initialize hitvec of all checked steps
-  hitvec <- rep(0, nVisit)
-  # Absorbing goal matrix
-  tMat.goal <- tMat
-  tMat.goal[Analytics[r,g.id],] <- 0
-  # One hot state ID
-  I <- rep(0,15); I[Analytics[r,s.id]] <- 1
+# Create representative starting and goal nodes for analysis
+start.v <- list('deep'       = c(0,1,0,0,0,0,0,0,0,0,0,0,0,0,0),
+                'bottleneck' = c(0,0,0,0,1,0,0,0,0,0,0,0,0,0,0))
+#goal.v  <- list('deep' = c(7,6,10), 'bottleneck' = c(7,12,6,10,15,11))
+goal.v <- list('deep' = c(7,6,10), 'bottleneck' = list('close'=c(7,6,10), 'far'=c(12,15,11)))
+
+# Fill the Analytics matrix with the values
+for(i in 1:nrow(Analytics)){
+  # Get start/goal type
+  st <- Analytics[i,s.type]
+  gl <- Analytics[i,g.type]
+  # Get actual nodes
+  st.v <- start.v[[st]] #Vector form
+  if(st=='deep'){gl.v <- goal.v[[st]][which(g.types==gl)]
+  }else if(st=='bottleneck'){gl.v <- goal.v[[st]][[Analytics[i,clust.loc]]][which(g.types==gl)]}
   
-  # Fill hitvec
-  for(s in 1:nVisit){
-    hitvec[s] <- (I %*% matrix.power(tMat.goal, s))[Analytics[r,g.id]]
+  # Get absorbing transition matrix
+  tMat.abs <- tMat
+  tMat.abs[gl.v,] <- 0
+  # Get chance of reaching the goal at EXACTLY node nr t.reach
+  Analytics$reachp[i] <- (st.v %*% matrix.power(tMat.abs, Analytics[i, t.reach-1]))[gl.v]
+  # Get chances of having sampled this start/goal type
+  if(st=='deep'){
+    Analytics$startp[i] <- 3/5
+    if(gl=='deep'){
+      Analytics$goalp[i] <- 3/5
+    }else{
+      Analytics$goalp[i] <- 1/5
+    }
+  }else if(st=='bottleneck'){
+    Analytics$startp[i] <- 2/5
+    if(grepl('deep',gl,fixed=T)){
+      Analytics$goalp[i] <- 3/10
+    }else{
+      Analytics$goalp[i] <- 1/10
+    }
   }
 }
+
+# Get number of selections of start/goal combinations
+goalytics <- unique(Analytics[,!"reachp"][,!"t.reach"])
+goalytics[,selectp:=goalp*startp,by=.(s.type,g.type,clust.loc)]
+goalytics[,numselect:=selectp*nTrs, by=.(s.type,g.type,clust.loc)]
+goalytics[s.type=='deep'&g.type=='bottleneck far',sym.id:='a']
+goalytics[s.type=='deep'&g.type=='deep',sym.id:='b']
+goalytics[s.type=='deep'&g.type=='bottleneck close',sym.id:='c']
+goalytics[s.type=='bottleneck'&g.type=='bottleneck far'&clust.loc=='close',sym.id:='a']
+goalytics[s.type=='bottleneck'&g.type=='deep'&clust.loc=='close',sym.id:='b']
+goalytics[s.type=='bottleneck'&g.type=='bottleneck close'&clust.loc=='close',sym.id:='c']
+goalytics[s.type=='bottleneck'&g.type=='bottleneck close'&clust.loc=='far',sym.id:='f']
+goalytics[s.type=='bottleneck'&g.type=='deep'&clust.loc=='far',sym.id:='g']
+goalytics[s.type=='bottleneck'&g.type=='bottleneck far'&clust.loc=='far',sym.id:='h']
+
+
+# Merge goalytics into Analytics
+setkey(goalytics, s.type,g.type,clust.loc)
+setkey(Analytics, s.type,g.type,clust.loc)
+Analytics <- Analytics[goalytics[,.(s.type,g.type,clust.loc,sym.id,numselect)]]
+
+# Expect select
+Analytics[,Eselect:=reachp*numselect,by=.(s.type,g.type,clust.loc,t.reach)]
+
+# Get hitvec for a particular Analytics row
+# for(r in 1:1){----
+#   # Initialize hitvec of all checked steps
+#   hitvec <- rep(0, nVisit)
+#   # Absorbing goal matrix
+#   tMat.goal <- tMat
+#   tMat.goal[Analytics[r,g.id],] <- 0
+#   # One hot state ID
+#   I <- rep(0,15); I[Analytics[r,s.id]] <- 1
+#   
+#   # Fill hitvec
+#   for(s in 1:nVisit){
+#     hitvec[s] <- (I %*% matrix.power(tMat.goal, s))[Analytics[r,g.id]]
+#   }
+# }
 ################################################################################
 #### Dwell times under RW and RW+HAM ####
 ## Dwell time under RW
@@ -135,17 +205,22 @@ I<-rep(0,15); I[1]<-1
 sum((I %*% matrix.power(tMat.dwell,14))[c(1,5)])
 ################################################################################
 #### Monte Carlo experiment ####
-rew  <- 1   #Reward per item delivered
-car  <- 0.1 #Cost per item per carry
-pick <- 0.1 #Cost for lollygagging
-cap = 3
+rew  <- 5   #Reward per item delivered
+car  <- 1 #Cost per item per carry
+pick <- 0.25 #Cost for lollygagging
+cap = 5
 # Initialize Expected Value matrix
 V <- matrix(0, 15,(cap+1))
+# Options for trial types
+trTypes <- data.table(s.type=c(rep('deep',3),rep('bottleneck',6)), g.type=c('deep','bottleneck close','bottleneck far', 
+                                                                            'deep','deep','bottleneck close','bottleneck close',
+                                                                            'bottleneck far', 'bottleneck far'),
+                      s.id=c(2,2,2,1,1,1,1,1,1), g.id=c(7,6,10,14,7,15,6,11,10))
 
-#Asynchronous Value Iteration - carry payment in state
+#Asynchronous Value Iteration - carry payment in state (dont use this one)
 for(trType in 1:1){
   # Get goal (instructed)
-  goal <- Analytics[trType,g.id]
+  goal <- trTypes[trType,g.id]
   # Clamp value of goal immediately, no need for computation
   V[goal,] <- c(0:cap)*rew - c(0:cap)*car
   nValit <- 1e5
@@ -169,10 +244,10 @@ for(trType in 1:1){
   }
 }
 
-#Asynchronous Value Iteration - carry payment upon transition
+#Asynchronous Value Iteration - carry payment upon transition (use this one)
 for(trType in 1:1){
   # Get goal (instructed)
-  goal <- Analytics[trType,g.id]
+  goal <- trTypes[trType,g.id]
   # Clamp value of goal immediately, no need for computation
   V[goal,] <- c(0:cap)*rew
   nValit <- 1e5
@@ -202,11 +277,111 @@ for(trType in 1:1){
   }
 }
 
+# Get policy from value iterated state values
+pol <- matrix(0, 15,cap+1)
 
+for(st in 1:15){
+  for(carry in 1:(cap+1)){
+    # Init reward vectors
+    r <- rep(0,3) 
+    # Penalty for lollygag
+    if(carry==1){
+      r[1] = r[1]-pick
+    }else if(carry==(cap+1)){
+      r[3] = r[3]-pick
+    }
+    # subtract carry based on selected action
+    r[1] = r[1] - car*(max(carry-1,1)-1)
+    r[2] = r[2] - car*(carry-1)
+    r[3] = r[3] - car*(min(carry+1,(cap+1))-1)
+    
+    # Avg reward of potential successors
+    r[1] <- r[1] + sum(sapply(which(tMat[st,]!=0), function(fs){1/4*V[fs,max(carry-1,1)]}))
+    r[2] <- r[2] + sum(sapply(which(tMat[st,]!=0), function(fs){1/4*V[fs,carry]}))
+    r[3] <- r[3] + sum(sapply(which(tMat[st,]!=0), function(fs){1/4*V[fs,min(carry+1,cap+1)]}))
+    pol[st, carry] <- which(r == max(r))
+  }
+}
+################################################################################
+#### Generating trajectories? ####
+nSelect <- rep(nTrs/15, 15)
+runSelector <- Analytics[1,]     #Tracks nr of steps (t.reach) to select during run
+for(r in 1:nrow(goalytics)){
+  st <- goalytics[r,s.type]; gl <- goalytics[r,g.type]; cl <- goalytics[r,clust.loc]; ns <- goalytics[r,numselect]
+  runSelector <- rbind(runSelector, Analytics[s.type==st & g.type==gl & (clust.loc==cl|is.na(clust.loc)),][order(-Eselect)][1:ns,])
+}
+runSelector <- runSelector[-1,]
 
+## Sampler for the experiment
+# Tracks particular camp sites (first start + all goals)
+camps <- data.table(v = 0, s.type='start',g.type='start', t.reach=0)
+# Initialize by selecting first node
+camps$v <- sample(1:15, 1)
+scamp <- camps$v
+deepbridge=0; botbridge=0
 
+# Get all the campsites in a chain (not balanced?)
+for(cmp in 2:(nTrs+1)){
+  # Sample run and attach valid symmetry
+  if(scamp %in% unlist(idmap.d)){ # Deep start
+    if(deepbridge){# If not return to deep is possible from bottleneck
+      curRun <- runSelector[s.type=='deep'&g.type=='deep',][sample(1:.N,1),]
+    }else{
+      curRun <- runSelector[s.type=='deep',][sample(1:.N,1),]
+    }
+    val.sym <- idmap.dg2
+  }else if(scamp %in% gsym5){ # Rotational symmetry w.r.t. 5 start
+    if(botbridge){ # If not return to bottleneck is possible from bridge
+      curRun <- runSelector[s.type=='bottleneck'&g.type!='deep',][sample(1:.N,1),]
+    }else{
+      curRun <- runSelector[s.type=='bottleneck',][sample(1:.N,1),]
+    }    
+    val.sym <- idmap.bg5
+  }else if(scamp %in% gsym6){ # Rotational symmetry w.r.t. 6 start
+    if(botbridge){ # If not return to bottleneck is possible from bridge
+      curRun <- runSelector[s.type=='bottleneck'&g.type!='deep',][sample(1:.N,1),]
+    }else{
+      curRun <- runSelector[s.type=='bottleneck',][sample(1:.N,1),]
+    }
+    val.sym <- idmap.bg6
+  }else{
+    stop('Non-accounted-for node number?')
+  }
+  # Remove sampled row
+  if(sum(duplicated(rbind(curRun, runSelector)))!=1){stop('Will remove more than one')}
+  runSelector <- runSelector[-(which(duplicated(rbind(curRun, runSelector)))-1),]
+  # Figure out rotation
+  rotval <- max(which(sapply(idmap.d, function(li){scamp %in% li}))-1, which(gsym6==scamp)-1, which(gsym5==scamp)-1)*5
+  # Get eligible goal nodes
+  val.set <- ((val.sym[[curRun$sym.id]] - 1 +rotval) %% 15) + 1
+  
+  # Check if still available for balanced sampling
+  val.nodes <- val.set[nSelect[val.set]!=0]
+  if(length(val.nodes)==0){stop('No more eligible nodes left')}
+  # Sample eligible node
+  nxtcamp <- val.nodes[sample(length(val.nodes),1)]
+  # Decrement nSelect
+  #nSelect[nxtcamp] <- nSelect[nxtcamp]-1
+  # Attach to camp data.table
+  camps <- rbind(camps, data.table(v=nxtcamp, s.type='nan', g.type=curRun$g.type, t.reach=curRun$t.reach))
+  # Get next starting node
+  scamp <- nxtcamp
+  # Check if bridges from deep to bottleneck still exist
+  botbridge <- (runSelector[s.type=='deep'&g.type!='deep',.N] == 0) & (runSelector[s.type=='bottleneck' & g.type!='deep',.N]>0)
+  # Check if bridges from bottleneck to deep still exist
+  deepbridge <- (runSelector[s.type=='bottleneck'&g.type=='deep',.N] == 0) & (runSelector[s.type=='deep' & g.type=='deep',.N]>0)
+}
 
+# Append miniblock number
+camps[,miniblock:=0:nTrs]
 
-
-
+# Monte Carlo sampling of trajectories with t.reach requirements
+full.exp <- data.table(miniblock=1, v=camps[1,v], nSteps=camps[2,t.reach-1], goal=camps[2,v])
+for(cmp in 1:nTrs){
+  goal.v <- camps[miniblock==cmp,v]
+  start.v <- camps[miniblock==(cmp-1),v]
+  t.reach <- camps[miniblock==cmp,t.reach]
+  v <- MC.get.trajectory(start.v,goal.v,t.reach,Edges)
+  full.exp <- rbind(full.exp, data.table(miniblock=cmp, v=v[-1], nSteps=((t.reach-1):1)-1, goal=goal.v))
+}
 
