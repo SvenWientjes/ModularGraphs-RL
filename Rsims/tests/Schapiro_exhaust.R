@@ -9,7 +9,7 @@ library(matrixcalc)
 # Task Parameters
 nTrs <- 75
 winM <- 1
-nVisit <- 1500
+nVisit <- 100
 nRW <- 15
 nHam <- 15
 # Transitions in list and in matrix form
@@ -210,53 +210,20 @@ car  <- 1 #Cost per item per carry
 pick <- 0.25 #Cost for lollygagging
 cap = 5
 # Initialize Expected Value matrix
-V <- matrix(0, 15,(cap+1))
-# Options for trial types
-trTypes <- data.table(s.type=c(rep('deep',3),rep('bottleneck',6)), g.type=c('deep','bottleneck close','bottleneck far', 
-                                                                            'deep','deep','bottleneck close','bottleneck close',
-                                                                            'bottleneck far', 'bottleneck far'),
-                      s.id=c(2,2,2,1,1,1,1,1,1), g.id=c(7,6,10,14,7,15,6,11,10))
+Vs <- array(0, dim=c(15,(cap+1),15))
 
-#Asynchronous Value Iteration - carry payment in state (dont use this one)
-for(trType in 1:1){
-  # Get goal (instructed)
-  goal <- trTypes[trType,g.id]
+#Full Asynchronous Value Iteration - carry payment upon transition for all possible goals (use this one)
+for(goal in 1:15){
   # Clamp value of goal immediately, no need for computation
-  V[goal,] <- c(0:cap)*rew - c(0:cap)*car
+  Vs[goal,,goal] <- c(0:cap)*rew
   nValit <- 1e5
   for(i in 1:nValit){
-    state.node  <- sample(c(1:15)[-goal],1) #Randomly pick a state
-    state.carry <- sample(1:(cap+1),1)            #Randomly pick a carrying hold
-    # Inspect values for action
-      #actions: 1=decrease, 2=maintain, 3=increase
-    r <- rep(-car*(state.carry-1),3) 
-    if(state.carry==1){
-      r[1] = r[1]-pick
-    }else if(state.carry==(cap+1)){
-      r[3] = r[3]-pick
-    }
-    # Avg reward of potential successors
-    r[1] <- r[1] + sum(sapply(which(tMat[state.node,]!=0), function(fs){1/4*V[fs,max(state.carry-1,1)]}))
-    r[2] <- r[2] + sum(sapply(which(tMat[state.node,]!=0), function(fs){1/4*V[fs,state.carry]}))
-    r[3] <- r[3] + sum(sapply(which(tMat[state.node,]!=0), function(fs){1/4*V[fs,min(state.carry+1,cap+1)]}))
-    # Update V
-    V[state.node, state.carry] <- max(r)
-  }
-}
-
-#Asynchronous Value Iteration - carry payment upon transition (use this one)
-for(trType in 1:1){
-  # Get goal (instructed)
-  goal <- trTypes[trType,g.id]
-  # Clamp value of goal immediately, no need for computation
-  V[goal,] <- c(0:cap)*rew
-  nValit <- 1e5
-  for(i in 1:nValit){
-    state.node  <- sample(c(1:15)[-goal],1) #Randomly pick a state
-    state.carry <- sample(1:(cap+1),1)      #Randomly pick a carrying hold
+    state.node <- sample(c(1:15)[-goal],1) #Randomly pick a state
+    state.carry <- sample(1:(cap+1),1)     #Randomly pick a carrying hold
     
     # Init reward vectors
-    r <- rep(0,3) 
+    r <- rep(0,3)
+    
     # Penalty for lollygag
     if(state.carry==1){
       r[1] = r[1]-pick
@@ -269,49 +236,64 @@ for(trType in 1:1){
     r[3] = r[3] - car*(min(state.carry+1,(cap+1))-1)
     
     # Avg reward of potential successors
-    r[1] <- r[1] + sum(sapply(which(tMat[state.node,]!=0), function(fs){1/4*V[fs,max(state.carry-1,1)]}))
-    r[2] <- r[2] + sum(sapply(which(tMat[state.node,]!=0), function(fs){1/4*V[fs,state.carry]}))
-    r[3] <- r[3] + sum(sapply(which(tMat[state.node,]!=0), function(fs){1/4*V[fs,min(state.carry+1,cap+1)]}))
+    r[1] <- r[1] + sum(sapply(which(tMat[state.node,]!=0), function(fs){1/4*Vs[fs,max(state.carry-1,1),goal]}))
+    r[2] <- r[2] + sum(sapply(which(tMat[state.node,]!=0), function(fs){1/4*Vs[fs,state.carry,goal]}))
+    r[3] <- r[3] + sum(sapply(which(tMat[state.node,]!=0), function(fs){1/4*Vs[fs,min(state.carry+1,cap+1),goal]}))
     
-    V[state.node, state.carry] <- max(r)
+    Vs[state.node, state.carry,goal] <- max(r)
   }
 }
 
 # Get policy from value iterated state values
-pol <- matrix(0, 15,cap+1)
+pol <- array(0, dim=c(15,(cap+1),15))
 
-for(st in 1:15){
-  for(carry in 1:(cap+1)){
-    # Init reward vectors
-    r <- rep(0,3) 
-    # Penalty for lollygag
-    if(carry==1){
-      r[1] = r[1]-pick
-    }else if(carry==(cap+1)){
-      r[3] = r[3]-pick
+for(goal in 1:15){
+  for(st in 1:15){
+    for(carry in 1:(cap+1)){
+      # Init reward vectors
+      r <- rep(0,3) 
+      # Penalty for lollygag
+      if(carry==1){
+        r[1] = r[1]-pick
+      }else if(carry==(cap+1)){
+        r[3] = r[3]-pick
+      }
+      # subtract carry based on selected action
+      r[1] = r[1] - car*(max(carry-1,1)-1)
+      r[2] = r[2] - car*(carry-1)
+      r[3] = r[3] - car*(min(carry+1,(cap+1))-1)
+      # Avg reward of potential successors
+      r[1] <- r[1] + sum(sapply(which(tMat[st,]!=0), function(fs){1/4*Vs[fs,max(carry-1,1),goal]}))
+      r[2] <- r[2] + sum(sapply(which(tMat[st,]!=0), function(fs){1/4*Vs[fs,carry,goal]}))
+      r[3] <- r[3] + sum(sapply(which(tMat[st,]!=0), function(fs){1/4*Vs[fs,min(carry+1,cap+1),goal]}))
+      pol[st, carry, goal] <- max(which(r == max(r))) #Deep nodes of cluster of bottleneck goal have equivalent value for states 1:4
     }
-    # subtract carry based on selected action
-    r[1] = r[1] - car*(max(carry-1,1)-1)
-    r[2] = r[2] - car*(carry-1)
-    r[3] = r[3] - car*(min(carry+1,(cap+1))-1)
-    
-    # Avg reward of potential successors
-    r[1] <- r[1] + sum(sapply(which(tMat[st,]!=0), function(fs){1/4*V[fs,max(carry-1,1)]}))
-    r[2] <- r[2] + sum(sapply(which(tMat[st,]!=0), function(fs){1/4*V[fs,carry]}))
-    r[3] <- r[3] + sum(sapply(which(tMat[st,]!=0), function(fs){1/4*V[fs,min(carry+1,cap+1)]}))
-    pol[st, carry] <- which(r == max(r))
   }
 }
 ################################################################################
 #### Generating trajectories? ####
 nSelect <- rep(nTrs/15, 15)
 runSelector <- Analytics[1,]     #Tracks nr of steps (t.reach) to select during run
+## Runselector based on most likely reachp
 for(r in 1:nrow(goalytics)){
   st <- goalytics[r,s.type]; gl <- goalytics[r,g.type]; cl <- goalytics[r,clust.loc]; ns <- goalytics[r,numselect]
   runSelector <- rbind(runSelector, Analytics[s.type==st & g.type==gl & (clust.loc==cl|is.na(clust.loc)),][order(-Eselect)][1:ns,])
 }
+## Runselector based on accept/reject of reachp
+for(r in 1:nrow(goalytics)){#1:nrow(goalytics)
+  st <- goalytics[r,s.type]; gl <- goalytics[r,g.type]; cl <- goalytics[r,clust.loc]; ns <- goalytics[r,numselect]
+  for(i in 1:ns){
+    delt <- 0
+    while(!delt){
+      prop <- Analytics[s.type==st&g.type==gl & (clust.loc==cl|is.na(clust.loc)),][sample(.N,1),]
+      delt = runif(1) <= prop$reachp
+    }
+    print(prop)
+    runSelector <- rbind(runSelector, prop)
+  }
+}
+# Remove 
 runSelector <- runSelector[-1,]
-
 ## Sampler for the experiment
 # Tracks particular camp sites (first start + all goals)
 camps <- data.table(v = 0, s.type='start',g.type='start', t.reach=0)
@@ -321,7 +303,7 @@ scamp <- camps$v
 deepbridge=0; botbridge=0
 
 # Get all the campsites in a chain (not balanced?)
-for(cmp in 2:(nTrs+1)){
+for(cmp in 2:(nTrs+1)){#
   # Sample run and attach valid symmetry
   if(scamp %in% unlist(idmap.d)){ # Deep start
     if(deepbridge){# If not return to deep is possible from bottleneck
@@ -348,8 +330,12 @@ for(cmp in 2:(nTrs+1)){
     stop('Non-accounted-for node number?')
   }
   # Remove sampled row
-  if(sum(duplicated(rbind(curRun, runSelector)))!=1){stop('Will remove more than one')}
-  runSelector <- runSelector[-(which(duplicated(rbind(curRun, runSelector)))-1),]
+  #if(sum(duplicated(rbind(curRun, runSelector)))!=1){stop('Will remove more than one')}
+  #runSelector <- runSelector[-(which(duplicated(rbind(curRun, runSelector)))-1),]
+  rm <- which(runSelector$s.type == curRun$s.type & runSelector$g.type==curRun$g.type & 
+          (runSelector$clust.loc==curRun$clust.loc | is.na(runSelector$clust.loc)) 
+        & runSelector$t.reach == curRun$t.reach)[1]
+  runSelector <- runSelector[-rm,]
   # Figure out rotation
   rotval <- max(which(sapply(idmap.d, function(li){scamp %in% li}))-1, which(gsym6==scamp)-1, which(gsym5==scamp)-1)*5
   # Get eligible goal nodes
@@ -382,6 +368,117 @@ for(cmp in 1:nTrs){
   start.v <- camps[miniblock==(cmp-1),v]
   t.reach <- camps[miniblock==cmp,t.reach]
   v <- MC.get.trajectory(start.v,goal.v,t.reach,Edges)
+  print(cmp)
   full.exp <- rbind(full.exp, data.table(miniblock=cmp, v=v[-1], nSteps=((t.reach-1):1)-1, goal=goal.v))
 }
+# Get cluster ID attached
+full.exp[v%in%c(1:5),c.id:='a']
+full.exp[v%in%c(6:10),c.id:='b']
+full.exp[v%in%c(11:15),c.id:='c']
+# Count current dwell time
+full.exp[,dwell:=rowid(rleid(c.id))]
+# Plot final dwell times
+ggplot(full.exp[shift(full.exp[,dwell==1],1,type='lead'),], aes(x=dwell))+
+  geom_histogram(aes(y=..density..),alpha=0.6) +
+  geom_density()
+# Plot distribution of transitions until goal
+ggplot(full.exp[,list(t.reach=max(nSteps)),by=miniblock], aes(x=t.reach))+
+  geom_histogram()
+full.exp[,max(nSteps),by=miniblock][,mean(V1)]
+full.exp[,max(nSteps),by=miniblock][,var(V1)]
+################################################################################
+#### Comparing dwell times of MC experiment to general MC ####
+# Initialize data.table to keep track of dwell times
+dwell.timer <- data.table(expgen=0, c.id=0, dwell=0, type='wow')
+tCounter <- 0 # Counts number of transitions across all cur.exp
+for(i in 1:100){ #Get Experiment t.reach adhering
+  cur.exp <- MC.full.exp(nTrs, idmap.dg2, idmap.bg5, idmap.bg6, gsym5, gsym6, idmap.d, Edges, Analytics, goalytics)
+  print(i)
+  tCounter = tCounter + nrow(cur.exp)
+  dwell.timer <- rbind(dwell.timer, cur.exp[shift(cur.exp[,dwell==1],1,type='lead'),.(c.id, dwell)][,expgen:=i][,type:='MC.exp'])
+}
+# Get complete random walk for same number of transitions
+rand.walk <- random.walk(Edges, tCounter)
+dwell.timer <- rbind(dwell.timer, rand.walk[shift(rand.walk[,dwell==1],1,type='lead'),.(c.id,dwell)][,expgen:=1][,type:='RW'])
+# Remove init row
+dwell.timer<-dwell.timer[-1,]
+# Declare factors
+dwell.timer$expgen <- as.factor(dwell.timer$expgen)
+ggplot(dwell.timer[type=='MC.exp',], aes(x=dwell))+
+  geom_density(aes(col=expgen)) + 
+  geom_density(data=dwell.timer[type=='RW',], aes(x=dwell),col='black')+
+  theme(legend.position = 'none')
+# Get expectations
+dwell.timer[type=='MC.exp',mean(dwell)]
+dwell.timer[type=='MC.exp',var(dwell)]
+dwell.timer[type=='RW',mean(dwell)]
+dwell.timer[type=='RW',var(dwell)]
+################################################################################
+#### Define agents ####
+## Optimal agent using policy calculated before ----
+opt.dat <- copy(full.exp)
+opt.dat[,cur.car:=-1]
+opt.dat[1,cur.car:=0]
+opt.dat[,cur.rew:=0]
+opt.dat[,action:=0]
+opt.dat[,goal:=shift(goal,1,type='lead')]
+for(tr in 1:nrow(opt.dat)){
+  # Determine if goal -> give points
+  gained.points <- opt.dat[tr,cur.car]*rew*(opt.dat[tr,nSteps]==0)
+  opt.dat[tr,cur.rew:=cur.rew+gained.points]
+  # Determine if goal -> set cur.car to zero
+  opt.dat[tr,cur.car:=if(nSteps==0){0}else{cur.car}]
+  # Determine action
+  cur.act <- pol[opt.dat[tr,v],opt.dat[tr,cur.car+1],opt.dat[tr,goal]]
+  opt.dat[tr,action:=cur.act]
+  # Set cur.car of next trial one up
+  next.car <- opt.dat[tr,cur.car] + (cur.act-2)
+  # Decrease current reward by carry + next action
+  opt.dat[tr,cur.rew:=cur.rew - next.car*car]
+  opt.dat[tr+1,cur.car:=next.car]
+  opt.dat[tr+1,cur.rew:=opt.dat[tr,cur.rew]]
+}
+opt.dat[.N,cur.rew:=opt.dat[.N-1,cur.rew]+opt.dat[.N-1,cur.car+action-2]]
+
+## Plot some things of agent
+opt.dat[,rowidx:=1:.N] # Get row index for timeseries (each trial)
+# Plot point evolution
+ggplot(opt.dat, aes(x=rowidx, y=cur.rew))+
+  geom_line()
+# Plot choice series
+ggplot(opt.dat, aes(x=rowidx, y=action))+
+  geom_line()
+ggplot(opt.dat, aes(x=action))+
+  geom_bar()
+opt.dat[nSteps==0|action!=2|cur.car!=0,.N]/opt.dat[,.N]
+# Plot carrying series
+ggplot(opt.dat, aes(x=rowidx, y=cur.car))+
+  geom_line()
+opt.dat[action!=2,.N]/opt.dat[,.N]
+
+## SR Agent ---- 
+SR.dat <- data.table()
+# Quick SR matrix just for plot of final representation
+lr <- 0.05
+gamm <- 0.95
+SR <- diag(15)
+
+# MC exp
+for(tr in 2:nrow(full.exp)){
+  v <- full.exp[,v]
+  I <- rep(0,15); I[v[tr]] <- 1
+  er <- I + gamm * SR[v[tr],] - SR[v[tr-1],]
+  SR[v[tr-1],] = SR[v[tr-1],] + lr*er
+}
+heatmap(SR, Rowv = NA, Colv = NA)
+# True Random Walk
+for(tr in 2:nrow(full.exp)){
+  v <- rand.walk[,v]
+  I <- rep(0,15); I[v[tr]] <- 1
+  er <- I + gamm * SR[v[tr],] - SR[v[tr-1],]
+  SR[v[tr-1],] = SR[v[tr-1],] + lr*er
+}
+heatmap(SR, Rowv = NA, Colv = NA)
+# Transition table
+table(full.exp$v[-length(full.exp$v)], full.exp$v[-1])
 
