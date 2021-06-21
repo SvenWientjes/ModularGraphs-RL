@@ -9,7 +9,7 @@ library(matrixcalc)
 # Task Parameters
 nTrs <- 75
 winM <- 1
-nVisit <- 100
+nVisit <- 50
 nRW <- 15
 nHam <- 15
 # Transitions in list and in matrix form
@@ -481,4 +481,50 @@ for(tr in 2:nrow(full.exp)){
 heatmap(SR, Rowv = NA, Colv = NA)
 # Transition table
 table(full.exp$v[-length(full.exp$v)], full.exp$v[-1])
+################################################################################
+#### Large scale reward experiment ####
+multi.exp <- data.table(pp=0, miniblock=0, v=0, nSteps=0, goal=0, c.id='z', dwell=0, cur.car=-1, cur.rew=-1, action=-1)
+for(ppn in 1:150){
+  cur.exp <- MC.full.exp(nTrs, idmap.dg2, idmap.bg5, idmap.bg6, gsym5, gsym6, idmap.d, Edges, Analytics, goalytics)
+  cur.opt <- copy(cur.exp)
+  cur.opt[,cur.car:=-1]
+  cur.opt[1,cur.car:=0]
+  cur.opt[,cur.rew:=0]
+  cur.opt[,action:=0]
+  cur.opt[,goal:=shift(goal,1,type='lead')]
+  for(tr in 1:(nrow(cur.opt)-1)){
+    # Determine if goal -> give points
+    gained.points <- cur.opt[tr,cur.car]*rew*(cur.opt[tr,nSteps]==0)
+    cur.opt[tr,cur.rew:=cur.rew+gained.points]
+    # Determine if goal -> set cur.car to zero
+    cur.opt[tr,cur.car:=if(nSteps==0){0}else{cur.car}]
+    # Determine action
+    cur.act <- pol[cur.opt[tr,v],cur.opt[tr,cur.car+1],cur.opt[tr,goal]]
+    cur.opt[tr,action:=cur.act]
+    # Set cur.car of next trial one up
+    next.car <- cur.opt[tr,cur.car] + (cur.act-2)
+    # Decrease current reward by carry + next action
+    cur.opt[tr,cur.rew:=cur.rew - next.car*car]
+    cur.opt[tr+1,cur.car:=next.car]
+    cur.opt[tr+1,cur.rew:=cur.opt[tr,cur.rew]]
+  }
+  cur.opt[.N,cur.rew:=cur.opt[.N-1,cur.rew]+cur.opt[.N-1,cur.car+action-2]]
+  cur.opt[,pp:=ppn]
+  multi.exp <- rbind(multi.exp,cur.opt)
+}
+multi.exp <- multi.exp[-1,]
+multi.exp[,rowidx:=1:.N,by=pp]
+multi.exp$pp <- as.factor(multi.exp$pp)
+# Plot spaghetti cur.rew trajectory
+ggplot(multi.exp, aes(x=rowidx,y=cur.rew,col=pp))+
+  geom_line() +
+  theme(legend.position='none')
+# Plot distribution of end outcomes
+ggplot(multi.exp[miniblock==75&nSteps==0,cur.rew,by=pp], aes(x=cur.rew))+
+  geom_density()
+
+
+
+
+
 
