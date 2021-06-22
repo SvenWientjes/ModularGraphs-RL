@@ -522,9 +522,8 @@ ggplot(multi.exp, aes(x=rowidx,y=cur.rew,col=pp))+
 # Plot distribution of end outcomes
 ggplot(multi.exp[miniblock==75&nSteps==0,cur.rew,by=pp], aes(x=cur.rew))+
   geom_density()
-
-
-
-
-
-
+################################################################################
+#### Get balanced experiment for use with JS####
+nPP = 3
+exp.list <- gen.exhaust.experiment(nTrs, goalytics, idmap.d, idmap.dg2, idmap.bg5, idmap.bg6, gsym5, gsym6, Edges, nPP)
+exp.to.js(exp.list, nTrs, nPP)
