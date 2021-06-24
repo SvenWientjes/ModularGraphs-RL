@@ -73,10 +73,11 @@ trajSamp.max <- function(start.v, goal.v, Edges, maxL){
   }
 }
 
-gen.exhaust.experiment <- function(nTrs, goalytics, idmap.d, idmap.dg2, idmap.bg5, idmap.bg6, gsym5, gsym6, Edges, nPP){
+gen.exhaust.experiment <- function(nTrs, goalytics, idmap.d, idmap.dg2, idmap.bg5, idmap.bg6, gsym5, gsym6, Edges, nVisit, nPP, HamCyc=0){
   all.telomeres <- data.table(pp=0, s.type='init', g.type='init', clust.loc='init', v=0, goal=0, sym.id='init')
   all.exp <- data.table(pp=0, miniblock=0, v=0, nSteps=0, goal=0)
   for(ppn in 1:nPP){
+    cHamCyc <- HamCyc
     telomeres <- sampMCgoals(nTrs, goalytics, idmap.d, idmap.dg2, idmap.bg5, idmap.bg6, gsym5, gsym6)
     # Rework into sequence of 'camps' (intermediate goal/starts)
     camps <- data.table(v.type = as.character(shift(telomeres$g.type, 1, type='lag')), v = telomeres$v)
@@ -94,6 +95,35 @@ gen.exhaust.experiment <- function(nTrs, goalytics, idmap.d, idmap.dg2, idmap.bg
       gen.exp <- rbind(gen.exp, data.table(miniblock=cmp, v=v, nSteps=((length(v)):1)-1, goal=goal.v))
     }
     gen.exp <- gen.exp[-1,]
+    
+    # Get tally for bottleneck random walks in between hamiltonian runs
+    btypeTally <- rep(floor(HamCyc-1)/2,2)
+    while(cHamCyc > 0){
+      # Generate a Hamiltonian trial
+      v <- hamcyc.run(gen.exp[.N,v])
+      # Append run to gen.exp
+      gen.exp <- rbind(gen.exp, data.table(miniblock=gen.exp[,max(miniblock)+1], v=v, nSteps=((length(v)):1)-1, goal=v[length(v)]))
+      # Check what to append to telomeres
+      if(v[1]%in%unlist(idmap.d)){
+        telomeres <- rbind(telomeres, data.table(s.type='deep', g.type='deep', clust.loc='na', v=v[1], goal=v[length(v)], sym.id='b'))
+      }else if(v[1]%in%unlist(idmap.bt)){
+        telomeres <- rbind(telomeres, data.table(s.type='bottleneck', g.type='deep',clust.loc='close',v=v[1],goal=v[length(v)],sym.id='b'))
+      }
+      # Interleave RW to btn in between HamCycs to deep nodes
+      if(cHamCyc > 1){
+        # Generate a random walk to a bottleneck
+        rb.list <- randBTN.run(gen.exp[.N,v], idmap.dg2, btypeTally, Edges, nVisit)
+        v <- rb.list[[1]]
+        btypeTally <- rb.list[[2]]
+        gen.exp <- rbind(gen.exp, data.table(miniblock=gen.exp[,max(miniblock)+1], v=v, nSteps=((length(v)):1)-1, goal=v[length(v)]))
+        
+        telomeres <- rbind(telomeres, data.table(s.type='deep', g.type=goalytics[s.type=='deep'&sym.id==rb.list[[3]],g.type], 
+                                                 clust.loc='na', v=v[1], goal=v[length(v)], sym.id=rb.list[[3]]))
+      }
+      cHamCyc <- cHamCyc-1
+    }
+    
+    
     all.exp <- rbind(all.exp, gen.exp[,pp:=ppn])
     all.telomeres <- rbind(all.telomeres,telomeres[,pp:=ppn])
   }
