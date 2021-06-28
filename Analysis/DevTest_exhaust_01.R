@@ -68,5 +68,81 @@ ggplot(data[transType.g!='start',list(pDown = sum(choiceVar==1)/.N), by=.(transT
 ggplot(data[,list(mRT = mean(rt)),by=miniblock], aes(x=miniblock, y=mRT))+
   geom_line()
 
+################################################################################
+## Data from 100Tr Exhaust with last 25 alternating Hamiltonian Cycles
+data <- as.data.table(read.csv('dat/Exhaust_DevTest03.csv'))
 
+# Wrangle into usable
+data <- data[!is.na(miniblock) & rt!='null']
+data$rt <- as.numeric(data$rt)
+data <- data[,.(miniblock, nSteps, rt, node, goalnode, choiceVar, total_reward, trBet)]
 
+# Append cluster identity
+data[node %in% c(0:4), sym:='a']
+data[node %in% c(5:9), sym:='b']
+data[node %in% c(10:14), sym:='c']
+data[goalnode %in% c(0:4), g.sym:='a']
+data[goalnode %in% c(5:9), g.sym:='b']
+data[goalnode %in% c(10:14), g.sym:='c']
+# Append node identity
+data[node %in% c(1,2,3,6,7,8,11,12,13), nodeType:='deep']
+data[node %in% c(0,4,5,9,10,14), nodeType:='btn']
+
+# Append transition identity in general
+data[nodeType=='btn' & shift(nodeType, n=1, type='lag')=='btn', transType:='between']
+data[is.na(transType), transType:='within']
+data[nSteps==0, nodeType:='start']
+data[nodeType=='start', transType:='start']
+data[is.na(choiceVar), choiceVar:=0]
+# Append transition identity w.r.t. goal
+data[transType=='start',transType.g:='start']
+data[transType=='between'&sym==g.sym,transType.g:='into']
+data[transType=='between'&sym!=g.sym&shift(sym,1,type='lag')==g.sym,transType.g:='outof']
+data[transType=='between'&sym!=g.sym&shift(sym,1,type='lag')!=g.sym,transType.g:='between']
+data[transType=='within'&sym==g.sym,transType.g:='within']
+data[transType=='within'&sym!=g.sym,transType.g:='outside']
+
+# Create altered choiceVar
+data[(choiceVar== 0 & trBet==5)|(choiceVar== 1 & trBet!=5),betVar:='yes']
+data[(choiceVar== 0 & trBet==0)|(choiceVar==-1 & trBet!=0),betVar:='no']
+data[(choiceVar==-1 & trBet==0)|(choiceVar== 1 & trBet==5),betVar:='mistaken']
+data[(choiceVar== 0 & 0<trBet & trBet<5), betVar:='norisk']
+
+# Get node/strategy symmetry with respect to goal
+data[,task.sym:=get.symmetry(node, goalnode[1], idmap.dg2b, idmap.bg5, idmap.bg6, idmap.d, gsym5, gsym6),by=.(miniblock)]
+data[goalnode %in% c(0,4,5,9,10,14),goal.task:='btngoal']
+data[goalnode %in% c(1,2,3,6,7,8,11,12,13), goal.task:='deepgoal']
+
+# Overall RT densty for within vs between
+ggplot(data[!transType %in% c('start')], aes(x=rt, col=transType))+
+  geom_density()
+
+# RT density for different TransType.g
+ggplot(data[!transType.g%in%c('start')],aes(x=rt, col=transType.g))+
+  geom_density()
+
+# RT density for within vs between for testing phase
+ggplot(data[miniblock %in% c(75:99) & !transType %in% c('start')], aes(x=rt, col=transType.g))+
+  geom_density() +
+  facet_grid(.~goal.task)
+
+# Plot proportion of choice for particular trial type, with overall choice proportion of all trial types as horizontal line
+pm1 <- ggplot(data[miniblock%in%c(75:99)&transType.g!='start',list(pDown = sum(choiceVar==-1)/.N), by=.(transType.g)], aes(x=transType.g, y=pDown))+
+  geom_bar(stat='identity', position='dodge2')+
+  geom_hline(yintercept=data[miniblock%in%c(75:99)&transType.g!='start',sum(choiceVar==-1)/.N])+
+  ylab('pDown')
+p0 <- ggplot(data[miniblock%in%c(75:99)&transType.g!='start',list(pDown = sum(choiceVar==0)/.N), by=.(transType.g)], aes(x=transType.g, y=pDown))+
+  geom_bar(stat='identity', position='dodge2')+
+  geom_hline(yintercept=data[miniblock%in%c(75:99)&transType.g!='start',sum(choiceVar==0)/.N])+
+  ylab('pStay')
+pp1 <- ggplot(data[miniblock%in%c(75:99)&transType.g!='start',list(pDown = sum(choiceVar==1)/.N), by=.(transType.g)], aes(x=transType.g, y=pDown))+
+  geom_bar(stat='identity', position='dodge2')+
+  geom_hline(yintercept=data[miniblock%in%c(75:99)&transType.g!='start',sum(choiceVar==1)/.N])+
+  ylab('pUp')
+plot_grid(pm1, p0, pp1)
+
+# Get 'heatmap' of 
+valMap1 <- dcast(data[miniblock%in%c(75:99),sum(choiceVar==1 | (choiceVar==0 & trBet==5))/.N,by=.(task.sym,goal.task)], formula=task.sym~goal.task, value.var='V1')
+valMap2 <- as.matrix(valMap1[,-1])
+rownames(valMap2) <- unlist(valMap1[,1])
+heatmap(valMap2, scale='column')
