@@ -139,4 +139,26 @@ random.walk <- function(Edges, nVisit){
   return(walk)
 }
 
-
+get.symmetry <- function(v, g, idmap.dg2b, idmap.bg5, idmap.bg6, idmap.d, gsym5, gsym6){
+  # Initialize vector of symmetries
+  sym.v <- rep('z', length(v))
+  # Correct for 0-indexing in JS
+  v <- v+1
+  g <- g+1
+  # Determine valid symmtry
+  if(g %in% unlist(idmap.d)){ # Deep goal
+    val.sym <- idmap.dg2b
+  }else if(g %in% gsym5){ # Rotational symmetry w.r.t. 5 start
+    val.sym <- idmap.bg5
+  }else if(g %in% gsym6){ # Rotational symmetry w.r.t. 6 start
+    val.sym <- idmap.bg6
+  }
+  # Determine rotation
+  rotval <- max(which(sapply(idmap.d, function(li){g %in% li}))-1, which(gsym6==g)-1, which(gsym5==g)-1)*5
+  # Determine node symmetry
+  for(i in 1:length(v)){
+    cand <- names(val.sym)[sapply(val.sym, function(vs){v[i] %in% (((vs - 1 + rotval) %% 15)+1)})]
+    sym.v[i] <- names(val.sym)[sapply(val.sym, function(vs){v[i] %in% (((vs - 1 + rotval) %% 15)+1)})]
+  }
+  return(sym.v)
+}

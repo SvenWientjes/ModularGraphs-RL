@@ -51,6 +51,7 @@ idmap.bt <- list(a=c(1,5), b=c(6,10), c=c(11,15))        # All bottleneck nodes
 c.map <- list(a=c('c','b'), b=c('a','c'), c=c('b','a'))  # Cluster maps of bottlenecks
 idmap.dg  <- list(a=c(1,15), b=c(2,3,4, 12,13,14), c=c(5,11), d=c(6,10), e=c(8,9)) # Symmetries to Deep Goal (b) ; goal = 7
 idmap.dg2 <- list(a=c(10,11),b=c(7,8,9,12,13,14), c=c(6,15))
+idmap.dg2b <- list(a=c(10,11),b=c(7,8,9,12,13,14),c=c(6,15),d=c(1,5),e=c(2,3,4))
 idmap.bg5 <- list(a=c(10), b=c(7,8,9), c=c(6), d=c(2,3,4), e=c(1), f=c(15), g=c(12,13,14),h=c(11)) # Symmetries to Bottleneck Goal (b) ; goal = 5
 gsym5 <- ((5+c(0,5,10))-1)%%15 + 1 #x-1 modulo +1 maps 15 to 1 instead of 0
 idmap.bg6  <- list(a=c(1), b=c(2,3,4), c=c(5), d=c(7,8,9), e=c(10), f=c(11),g=c(12,13,14),h=c(15)) # Symmetries to Bottleneck Goal (b) ; goal = 6
