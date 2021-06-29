@@ -112,7 +112,7 @@ gen.exhaust.experiment <- function(nTrs, goalytics, idmap.d, idmap.dg2, idmap.bg
       # Interleave RW to btn in between HamCycs to deep nodes
       if(cHamCyc > 1){
         # Generate a random walk to a bottleneck
-        rb.list <- randBTN.run(gen.exp[.N,v], idmap.dg2, btypeTally, Edges, nVisit)
+        rb.list <- randBTN.run(gen.exp[.N,v], idmap.dg2, btypeTally, Edges, nVisit, idmap.dg2b, idmap.bg5, idmap.bg6, idmap.d, gsym5, gsym6)
         v <- rb.list[[1]]
         btypeTally <- rb.list[[2]]
         gen.exp <- rbind(gen.exp, data.table(miniblock=gen.exp[,max(miniblock)+1], v=v, nSteps=((length(v)):1)-1, goal=v[length(v)]))

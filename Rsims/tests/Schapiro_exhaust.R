@@ -9,7 +9,7 @@ library(matrixcalc)
 # Task Parameters
 nTrs <- 75
 winM <- 1
-nVisit <- 50
+nVisit <- 150
 nRW <- 15
 nHam <- 15
 # Transitions in list and in matrix form
@@ -155,6 +155,8 @@ Analytics[,Eselect:=reachp*numselect,by=.(s.type,g.type,clust.loc,t.reach)]
 #     hitvec[s] <- (I %*% matrix.power(tMat.goal, s))[Analytics[r,g.id]]
 #   }
 # }
+ggplot(Analytics[!(s.type=='bottleneck'&g.type=='bottleneck close'&clust.loc=='close')], aes(x=t.reach, y=reachp, col=interaction(s.type, g.type, clust.loc)))+
+  geom_line()
 ################################################################################
 #### Dwell times under RW and RW+HAM ####
 ## Dwell time under RW
@@ -531,8 +533,116 @@ exp.list <- gen.exhaust.experiment(nTrs, goalytics, idmap.d, idmap.dg2, idmap.bg
 
 exp.to.js(exp.list, nTrs+HamCyc*2-1, nPP)
 
+################################################################################
+#### Super-sample many experiments to check for distribution of full exp length ####
+## Goal nodes not balanced, but goal-start types are correct
+test.exp <- data.table(pp=0,miniblock=0,v=0,nSteps=0,goal=0)
+for(ppn in 1:1000){
+  nSelect <- rep(nTrs/15, 15)
+  runSelector <- Analytics[1,]     #Tracks nr of steps (t.reach) to select during run
+  ## Runselector based on accept/reject of reachp
+  for(r in 1:nrow(goalytics)){#1:nrow(goalytics)
+    st <- goalytics[r,s.type]; gl <- goalytics[r,g.type]; cl <- goalytics[r,clust.loc]; ns <- goalytics[r,numselect]
+    for(i in 1:ns){
+      delt <- 0
+      while(!delt){
+        prop <- Analytics[s.type==st&g.type==gl & (clust.loc==cl|is.na(clust.loc)),][sample(.N,1),]
+        delt = runif(1) <= prop$reachp
+      }
+      runSelector <- rbind(runSelector, prop)
+    }
+  }
+  # Remove 
+  runSelector <- runSelector[-1,]
+  ## Sampler for the experiment
+  # Tracks particular camp sites (first start + all goals)
+  camps <- data.table(v = 0, s.type='start',g.type='start', t.reach=0)
+  # Initialize by selecting first node
+  camps$v <- sample(1:15, 1)
+  scamp <- camps$v
+  deepbridge=0; botbridge=0
+  
+  # Get all the campsites in a chain (not balanced?)
+  for(cmp in 2:(nTrs+1)){#
+    # Sample run and attach valid symmetry
+    if(scamp %in% unlist(idmap.d)){ # Deep start
+      if(deepbridge){# If not return to deep is possible from bottleneck
+        curRun <- runSelector[s.type=='deep'&g.type=='deep',][sample(1:.N,1),]
+      }else{
+        curRun <- runSelector[s.type=='deep',][sample(1:.N,1),]
+      }
+      val.sym <- idmap.dg2
+    }else if(scamp %in% gsym5){ # Rotational symmetry w.r.t. 5 start
+      if(botbridge){ # If not return to bottleneck is possible from bridge
+        curRun <- runSelector[s.type=='bottleneck'&g.type!='deep',][sample(1:.N,1),]
+      }else{
+        curRun <- runSelector[s.type=='bottleneck',][sample(1:.N,1),]
+      }    
+      val.sym <- idmap.bg5
+    }else if(scamp %in% gsym6){ # Rotational symmetry w.r.t. 6 start
+      if(botbridge){ # If not return to bottleneck is possible from bridge
+        curRun <- runSelector[s.type=='bottleneck'&g.type!='deep',][sample(1:.N,1),]
+      }else{
+        curRun <- runSelector[s.type=='bottleneck',][sample(1:.N,1),]
+      }
+      val.sym <- idmap.bg6
+    }else{
+      stop('Non-accounted-for node number?')
+    }
+    # Remove sampled row
+    #if(sum(duplicated(rbind(curRun, runSelector)))!=1){stop('Will remove more than one')}
+    #runSelector <- runSelector[-(which(duplicated(rbind(curRun, runSelector)))-1),]
+    rm <- which(runSelector$s.type == curRun$s.type & runSelector$g.type==curRun$g.type & 
+                  (runSelector$clust.loc==curRun$clust.loc | is.na(runSelector$clust.loc)) 
+                & runSelector$t.reach == curRun$t.reach)[1]
+    runSelector <- runSelector[-rm,]
+    # Figure out rotation
+    rotval <- max(which(sapply(idmap.d, function(li){scamp %in% li}))-1, which(gsym6==scamp)-1, which(gsym5==scamp)-1)*5
+    # Get eligible goal nodes
+    val.set <- ((val.sym[[curRun$sym.id]] - 1 +rotval) %% 15) + 1
+    
+    # Check if still available for balanced sampling
+    val.nodes <- val.set[nSelect[val.set]!=0]
+    if(length(val.nodes)==0){stop('No more eligible nodes left')}
+    # Sample eligible node
+    nxtcamp <- val.nodes[sample(length(val.nodes),1)]
+    # Decrement nSelect
+    #nSelect[nxtcamp] <- nSelect[nxtcamp]-1
+    # Attach to camp data.table
+    camps <- rbind(camps, data.table(v=nxtcamp, s.type='nan', g.type=curRun$g.type, t.reach=curRun$t.reach))
+    # Get next starting node
+    scamp <- nxtcamp
+    # Check if bridges from deep to bottleneck still exist
+    botbridge <- (runSelector[s.type=='deep'&g.type!='deep',.N] == 0) & (runSelector[s.type=='bottleneck' & g.type!='deep',.N]>0)
+    # Check if bridges from bottleneck to deep still exist
+    deepbridge <- (runSelector[s.type=='bottleneck'&g.type=='deep',.N] == 0) & (runSelector[s.type=='deep' & g.type=='deep',.N]>0)
+  }
+  
+  # Append miniblock number
+  camps[,miniblock:=0:nTrs]
+  
+  # Monte Carlo sampling of trajectories with t.reach requirements
+  full.exp <- data.table(miniblock=1, v=camps[1,v], nSteps=camps[2,t.reach-1], goal=camps[2,v])
+  for(cmp in 1:nTrs){
+    goal.v <- camps[miniblock==cmp,v]
+    start.v <- camps[miniblock==(cmp-1),v]
+    t.reach <- camps[miniblock==cmp,t.reach]
+    v <- MC.get.trajectory(start.v,goal.v,t.reach,Edges)
+    full.exp <- rbind(full.exp, data.table(miniblock=cmp, v=v[-1], nSteps=((t.reach-1):1)-1, goal=goal.v))
+  }
+  test.exp <- rbind(test.exp, full.exp[,pp:=ppn])
+  print(ppn)
+}
 
+grob1 <- grobTree(textGrob("Mean: 2635.448", x=0.3,  y=0.11, hjust=0,
+                          gp=gpar(col="red", fontsize=13, fontface="italic")))
+grob2 <- grobTree(textGrob("Sd: 251.5513", x=0.32,  y=0.05, hjust=0,
+                          gp=gpar(col="red", fontsize=13, fontface="italic")))
 
-
-
+ggplot(test.exp[-1,.N,by=pp], aes(x=N))+
+  geom_density() +
+  annotation_custom(grob1)+
+  annotation_custom(grob2)
+mean(test.exp[-1,.N,by=pp]$N)
+sd(test.exp[-1,.N,by=pp]$N)
 

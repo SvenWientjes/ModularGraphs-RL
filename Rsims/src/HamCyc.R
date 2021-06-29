@@ -34,7 +34,7 @@ hamcyc.run <- function(lastv){
   return(v)
 }
 
-randBTN.run <- function(lastv, idmap.dg2, btypeTally, Edges, nVisit){
+randBTN.run <- function(lastv, idmap.dg2, btypeTally, Edges, nVisit, idmap.dg2b, idmap.bg5, idmap.bg6, idmap.d, gsym5, gsym6){
   rotval <- (which(sapply(idmap.d, function(li){lastv %in% li}))-1) * 5
   val.type <- c('a','c')[btypeTally > 0]
   val.nodes <- c()
@@ -52,6 +52,17 @@ randBTN.run <- function(lastv, idmap.dg2, btypeTally, Edges, nVisit){
   }
   
   # Get v towards b.goal
-  v <- trajSamp.max(lastv, b.goal, Edges, nVisit)
+  wow = T
+  while(wow){
+    v <- trajSamp.max(lastv, b.goal, Edges, nVisit)
+    sym.v <- get.symmetry((v-1)[-length(v)], b.goal-1, idmap.dg2b, idmap.bg5, idmap.bg6, idmap.d, gsym5, gsym6)
+    check.sym <- table(shift(sym.v,1),sym.v)
+    if(all(c('c','f','e','a','h') %in% sym.v)){
+      if((check.sym['a','h'] > 0 | check.sym['h','a'] > 0)
+         & check.sym['f','e'] > 0 & sum(check.sym[,'e']) > check.sym['f','e']){
+        wow = F
+      }
+    }
+  }
   return(list(v,btypeTally,b.type))
 }
